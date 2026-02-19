@@ -1,0 +1,118 @@
+<!-- 14. UV THREAD POOL CONFIGURATION -->
+<section id="uv-threadpool">
+  <section class="section-header">
+    <h2>UV Thread Pool Configuration</h2>
+    <p>The hidden bottleneck</p>
+  </section>
+
+  <section>
+    <h3>What Uses the Thread Pool?</h3>
+    <pre><code class="language-javascript">// All of these compete for the SAME thread pool:
+fs.readFile(path, callback)         // File I/O
+fs.stat(path, callback)             // File metadata
+crypto.pbkdf2(pass, salt, cb)       // Crypto
+dns.lookup(host, callback)          // DNS resolution
+zlib.deflate(buffer, callback)      // Compression
+
+// Default pool size: 4 threads
+// If all 4 are busy with crypto, your DNS lookups queue up!
+// If all 4 are doing fs reads, your HTTP requests stall!</code></pre>
+  </section>
+
+  <section>
+    <h3>Configuring the Pool</h3>
+    <pre><code class="language-bash"># Set BEFORE requiring anything — must be in environment
+UV_THREADPOOL_SIZE=16 node server.js
+
+# Or in your entry point (MUST be before any I/O):
+# process.env.UV_THREADPOOL_SIZE = '16'  // Too late if I/O already started</code></pre>
+
+    <pre><code class="language-javascript">// Guidelines:
+// - Default: 4 (too low for most servers)
+// - I/O heavy: 16-64 (file serving, database proxy)
+// - CPU heavy (crypto): 8-16 (more threads ≠ more throughput)
+// - Mixed workload: 16-32
+
+// IMPORTANT: More threads = more memory + context switching
+// Find the sweet spot by benchmarking YOUR workload
+// Maximum: 1024 threads</code></pre>
+    <div class="warning">
+      If your Node.js app does any fs, crypto, or DNS operations,
+      the default of 4 threads is almost certainly too low.
+      This is the #1 most impactful configuration change.
+    </div>
+  </section>
+
+  <section>
+    <h3>Pool Size vs Throughput</h3>
+    <div style="font-size:0.7em;color:#999;margin-bottom:8px;text-align:center">
+      <a href="https://github.com/nodejs/node/pull/61533" style="color:#42affa">nodejs/node#61533</a> — auto-sizes UV_THREADPOOL_SIZE to available parallelism
+    </div>
+    <!-- 16 vCPU machine: auto-sizing 4 → 16 threads -->
+    <div style="font-size:0.65em;color:#888;margin-bottom:4px">16 vCPU / 32GB — autocannon 100 connections, 30s per route</div>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Workload</th><th>4 threads (baseline)</th><th>16 threads (PR)</th><th>Change</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>/crypto</td>
+          <td>122K req/s</td>
+          <td>467K req/s</td>
+          <td class="speedup">+281%</td>
+        </tr>
+        <tr>
+          <td>/mixed (fs + crypto)</td>
+          <td>651K req/s</td>
+          <td>1,230K req/s</td>
+          <td class="speedup">+89%</td>
+        </tr>
+        <tr>
+          <td>/fs</td>
+          <td>1,830K req/s</td>
+          <td>1,549K req/s</td>
+          <td style="color:#ff5252">−15%</td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- 4 vCPU: same pool size = no change -->
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">4 vCPU — no change</div>
+        <div style="color:#999;font-size:0.7em">Pool stays at 4 threads → identical performance</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">fs regression</div>
+        <div style="color:#999;font-size:0.7em">More threads = more contention on same FDs. SSD is already fast enough.</div>
+      </div>
+    </div>
+    <p class="small">AMD EPYC-Rome @ 2.0GHz — benchmarks by @RafaelGSS</p>
+    <div class="insight">
+      Auto-sizing gives +281% on crypto-heavy workloads for free.
+      Pure fs on SSD sees slight regression — more threads add scheduling overhead, not speed.
+    </div>
+  </section>
+
+  <section>
+    <h3>Coordinating with Scheduler</h3>
+    <pre><code class="language-javascript">import { Scheduler } from '@nxtedition/scheduler'
+
+// Know your thread pool size
+const UV_POOL = parseInt(process.env.UV_THREADPOOL_SIZE || '4', 10)
+
+// Share it across workers
+const sharedState = Scheduler.makeSharedState(UV_POOL)
+
+// Each worker respects the global limit
+const ioScheduler = new Scheduler(sharedState)
+
+// Prioritize user-facing I/O over background tasks
+async function handleRequest(req) {
+  return ioScheduler.run(() => fs.readFile(path), 'high')
+}
+
+async function backgroundIndex() {
+  return ioScheduler.run(() => fs.readFile(path), 'low')
+}</code></pre>
+  </section>
+</section>

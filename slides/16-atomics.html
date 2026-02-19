@@ -1,0 +1,97 @@
+<!-- ATOMICS ARE SLOW -->
+<section id="atomics">
+  <section class="section-header">
+    <h2>Atomics Are Slow</h2>
+    <p>Avoid them, batch them, or skip them entirely</p>
+  </section>
+
+  <section>
+    <h3>The Cost of Atomics</h3>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Operation</th><th>Plain</th><th>Atomics</th><th>Slowdown</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>read i32</td>
+          <td>0.27 ns</td>
+          <td>Atomics.load: 8.5 ns</td>
+          <td><strong>31x slower</strong></td>
+        </tr>
+        <tr>
+          <td>write i32</td>
+          <td>1.3 ns</td>
+          <td>Atomics.store: 9.5 ns</td>
+          <td><strong>7x slower</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="insight">
+      Every Atomics call is a memory fence — flushes store buffers and synchronizes cache lines.
+      V8 is conservative: TurboFan (the JIT) never optimizes, reorders, or elides Atomics — unlike C++ compilers.
+    </div>
+  </section>
+
+  <section>
+    <h3>Batch, Don't Spam</h3>
+    <pre><code class="language-javascript">// BAD: Atomics.store on every write
+for (let i = 0; i < 100; i++) {
+  Atomics.store(i32, 0, i)     // 100 × memory fence = 840 ns
+}
+
+// GOOD: plain writes + single atomic publish
+for (let i = 0; i < 100; i++) {
+  i32[0] = i                   // plain write, no fence
+}
+Atomics.store(i32, 0, i32[0])  // 1 × memory fence = 39 ns total</code></pre>
+    <table class="benchmark">
+      <thead><tr><th>Pattern</th><th>Time</th><th>Speedup</th></tr></thead>
+      <tbody>
+        <tr><td>100 × Atomics.store</td><td>840 ns</td><td>—</td></tr>
+        <tr><td>100 × plain + 1 × Atomics.store</td><td>39 ns</td><td><strong>21x faster</strong></td></tr>
+      </tbody>
+    </table>
+    <div class="insight">
+      This is what @nxtedition/shared does: plain writes into the ring buffer,
+      single Atomics.store to publish the new write position. Corking batches even further.
+    </div>
+  </section>
+
+  <section>
+    <h3>Polling vs wait/notify</h3>
+    <pre><code class="language-javascript">// Option 1: Atomics.wait
+Atomics.wait(i32, 0, oldValue)  // block until value changes
+// Zero CPU, but OS scheduling adds µs of wakeup latency
+
+// Option 2: Atomics.pause spin-wait — burns CPU
+while (Atomics.load(i32, 0) === oldValue) {
+  Atomics.pause() // hint to CPU we're in a spin loop, reduces power but still burns CPU
+}
+
+// Option 3: timer polling
+const poll = setInterval(() => {
+  if (i32[0] !== oldValue) { clearInterval(poll); onData() }
+}, 1)</code></pre>
+  </section>
+
+  <section>
+    <h3>On x86: Atomics Are Often Unnecessary</h3>
+    <pre><code class="language-javascript">// x86 has Total Store Order (TSO):
+// - Stores visible to other cores in program order
+// - Aligned 32-bit reads/writes are atomic by hardware
+
+// Reader sees this value or previous, never garbage
+i32[WRITE_INDEX] = newPos // plain write — safe on x86!
+
+// In practice on x86/ARM64 for SPSC:
+// - Plain writes for data
+// - Single Atomics.store to publish (acts as a fence)
+// - Plain reads to poll
+
+// @nxtedition/shared uses exactly this pattern</code></pre>
+    <div class="warning">
+      This is platform-specific and technically outside the JS spec.<br>
+      Safe on x86 and ARM64 (Node.js platforms). Not portable to weaker memory models.
+    </div>
+  </section>
+</section>

@@ -1,0 +1,72 @@
+<!-- 12. CLUSTER VS WORKERS & reusePort -->
+<section id="cluster-vs-workers">
+  <section class="section-header">
+    <h2>Cluster vs Workers &amp; reusePort</h2>
+    <p>Scaling Node.js across cores</p>
+  </section>
+
+  <section>
+    <h3>Cluster Module (Legacy)</h3>
+    <pre><code class="language-javascript">import cluster from 'node:cluster'
+import { cpus } from 'node:os'
+
+if (cluster.isPrimary) {
+  for (let i = 0; i < cpus().length; i++) cluster.fork()
+} else {
+  createServer(handler).listen(3000)
+}
+// Problems:
+// - Primary is a bottleneck (routes all connections)
+// - Round-robin doesn't respect worker load
+// - Each process = full V8 heap = high memory
+// - IPC is expensive (serialization)</code></pre>
+  </section>
+
+  <section>
+    <h3>Worker Threads + reusePort</h3>
+    <pre><code class="language-javascript">import { Worker } from 'node:worker_threads'
+
+// Main thread — just spawns workers
+for (let i = 0; i < cpus().length; i++) new Worker('./http-worker.js')
+
+// http-worker.js — each worker binds directly
+createServer(handler).listen({ port: 3000, reusePort: true })</code></pre>
+    <!-- reusePort benefits -->
+    <p style="font-size:0.75em;color:#ccc;margin:10px 0 8px"><code style="color:#e7ad52">SO_REUSEPORT</code> — each worker binds to the same port</p>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Kernel load balancing</div>
+        <div style="color:#999;font-size:0.7em">OS distributes connections — no primary bottleneck</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Shared memory</div>
+        <div style="color:#999;font-size:0.7em">Workers communicate via SharedArrayBuffer + Atomics</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">eBPF steering</div>
+        <div style="color:#999;font-size:0.7em">Route by CPU affinity, skip busy workers</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Comparison</h3>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Aspect</th><th>Cluster</th><th>Workers + reusePort</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Connection routing</td><td>Primary process</td><td>OS kernel</td></tr>
+        <tr><td>Load balancing</td><td>Round-robin</td><td>Kernel (EPOLL/kqueue)</td></tr>
+        <tr><td>Memory sharing</td><td>None (IPC only)</td><td>SharedArrayBuffer</td></tr>
+        <tr><td>Communication</td><td>JSON serialization</td><td>Atomics / SharedArrayBuffer</td></tr>
+        <tr><td>Memory per worker</td><td>Full V8 heap</td><td>Shared code + smaller heap</td></tr>
+        <tr><td>Primary bottleneck</td><td>Yes</td><td>No</td></tr>
+      </tbody>
+    </table>
+    <div class="insight">
+      reusePort eliminates the primary bottleneck. Worker threads + SharedArrayBuffer
+      give you isolation + shared memory.
+    </div>
+  </section>
+</section>

@@ -1,0 +1,143 @@
+<!-- 6. SYNC VS ASYNC METHODS & V8 FAST API -->
+<section id="sync-vs-async">
+  <section class="section-header">
+    <h2>V8 Fast API &amp; Sync Methods</h2>
+    <p>Near-zero overhead native calls</p>
+  </section>
+
+  <section>
+    <h3>V8 Fast API Calls</h3>
+    <!-- Call path comparison -->
+    <div style="display:flex;gap:16px;margin-bottom:12px">
+      <div class="diagram-box" style="flex:1;padding:12px 16px;border-color:#ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.95em;margin-bottom:8px">Normal N-API Call</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.95em">
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#e7ad52;font-weight:bold">JS</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">V8</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">N-API wrapper</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#569cd6;font-weight:bold">C++</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">result</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">V8</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#e7ad52;font-weight:bold">JS</span>
+        </div>
+        <div style="color:#ff5252;font-size:0.85em;margin-top:6px;text-align:center">~100–500 ns overhead per call</div>
+      </div>
+      <div class="diagram-box" style="flex:1;padding:12px 16px;border-color:#4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.95em;margin-bottom:8px">V8 Fast API Call</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.95em">
+          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#e7ad52;font-weight:bold">JS</span>
+          <span style="color:#666">&rarr;</span>
+          <span style="background:rgba(78,201,176,0.2);padding:4px 10px;border-radius:4px;color:#4ec9b0;font-weight:bold;border:1px solid #4ec9b0">C++ (inlined by TurboFan)</span>
+        </div>
+        <div style="color:#4ec9b0;font-size:0.85em;margin-top:6px;text-align:center">~5–10 ns overhead per call</div>
+      </div>
+    </div>
+    <!-- Which APIs use Fast API -->
+    <div style="display:flex;gap:10px;margin-bottom:8px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Buffer operations</div>
+        <div style="color:#bbb;font-size:0.75em"><code style="color:#e7ad52">Buffer.copy</code>, <code style="color:#e7ad52">Buffer.write</code>, <code style="color:#e7ad52">Buffer.fill</code></div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Sync fs methods</div>
+        <div style="color:#bbb;font-size:0.75em"><code style="color:#e7ad52">readFileSync</code>, <code style="color:#e7ad52">writeSync</code>, <code style="color:#e7ad52">statSync</code></div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">TypedArrays</div>
+        <div style="color:#bbb;font-size:0.75em"><code style="color:#e7ad52">Int32Array[i] = v</code> — direct memory, zero overhead</div>
+      </div>
+    </div>
+    <div class="insight">
+      V8 Fast API lets Node.js native functions be called with near-zero overhead
+      when the JIT compiler can prove the types at compile time.
+    </div>
+  </section>
+
+  <section>
+    <h3>Sync vs Async — When to Use What</h3>
+    <div style="display:flex;gap:14px;margin-bottom:10px">
+      <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#569cd6">
+        <div style="color:#569cd6;font-weight:bold;font-size:0.9em;margin-bottom:6px">Async</div>
+        <pre style="margin:0;box-shadow:none;font-size:1.1em"><code class="language-javascript">fs.read(fd, buf, 0, len, 0, cb)</code></pre>
+        <div style="color:#999;font-size:0.75em;margin-top:6px">Thread pool + callback + async context</div>
+      </div>
+      <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.9em;margin-bottom:6px">Sync</div>
+        <pre style="margin:0;box-shadow:none;font-size:1.1em"><code class="language-javascript">fs.readSync(fd, buf, 0, len, 0)</code></pre>
+        <div style="color:#999;font-size:0.75em;margin-top:6px">Direct syscall + V8 Fast API</div>
+      </div>
+    </div>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Method</th><th>4 KB</th><th>4 MB</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>fs.readSync</td>
+          <td class="speedup">603 ns</td>
+          <td class="speedup">571 µs</td>
+        </tr>
+        <tr>
+          <td>fs.read (callback)</td>
+          <td>115 µs <span style="color:#999">(190x)</span></td>
+          <td>846 µs <span style="color:#999">(1.5x)</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0 / SSD — .gc('inner') enabled</p>
+  </section>
+
+  <section>
+    <h3>When Is Sync OK?</h3>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 16px;text-align:center;border-left:3px solid #4ec9b0">
+        <strong style="color:#4ec9b0;font-size:0.9em">Worker threads</strong><br>
+        <span style="color:#999;font-size:0.75em">Not blocking main event loop</span>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 16px;text-align:center;border-left:3px solid #4ec9b0">
+        <strong style="color:#4ec9b0;font-size:0.9em">Startup / init</strong><br>
+        <span style="color:#999;font-size:0.75em">No requests to block yet</span>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 16px;text-align:center;border-left:3px solid #4ec9b0">
+        <strong style="color:#4ec9b0;font-size:0.9em">SSD / cached fs</strong><br>
+        <span style="color:#999;font-size:0.75em">Sub-ms latency</span>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 16px;text-align:center;border-left:3px solid #4ec9b0">
+        <strong style="color:#4ec9b0;font-size:0.9em">With yielding</strong><br>
+        <span style="color:#999;font-size:0.75em">Stay responsive (see later)</span>
+      </div>
+    </div>
+    <div class="insight" style="margin-top:14px">
+      Sync is not "bad" — it's the fastest path when you're not blocking anyone.
+      The key is knowing when blocking is acceptable.
+    </div>
+  </section>
+
+  <section>
+    <h3>DatabaseSync — The New Paradigm</h3>
+    <pre><code class="language-javascript">import { DatabaseSync } from 'node:sqlite'
+
+// Synchronous database access — no Promises, no callbacks
+const db = new DatabaseSync(':memory:')
+db.exec('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)')
+
+const stmt = db.prepare('SELECT * FROM users WHERE id = ?')
+const user = stmt.get(42)  // Instant, zero async overhead
+
+// Combined with worker threads:
+// Main thread handles HTTP, worker handles DB
+// Worker uses sync APIs → simple code, maximum throughput
+// Main thread stays responsive</code></pre>
+    <div class="insight">
+      Node.js is moving towards more synchronous APIs
+      (DatabaseSync, synchronous fs in workers).
+      Combined with yielding, this can be faster than async patterns.
+    </div>
+  </section>
+</section>

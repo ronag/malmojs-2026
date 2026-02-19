@@ -1,0 +1,42 @@
+<!-- SUMMARY & TAKEAWAYS -->
+<section>
+  <section class="section-header">
+    <h2>Key Takeaways</h2>
+  </section>
+
+  <section>
+    <h3>The Performance Mindset</h3>
+    <ol class="spaced" style="font-size: 0.7em;">
+      <li><strong>Measure first</strong> — don't guess where bottlenecks are</li>
+      <li><strong>Reduce allocations</strong> — every object is a GC promise; use opaque data, object reuse, pool allocators</li>
+      <li><strong>Avoid unnecessary async</strong> — sync fast paths, async return pattern</li>
+      <li><strong>Pool expensive resources</strong> — timers, buffers, connections</li>
+      <li><strong>Yield cooperatively</strong> — keep the event loop responsive</li>
+      <li><strong>Schedule with priorities</strong> — not all work is equal</li>
+      <li><strong>Use shared memory</strong> — SharedArrayBuffer over MessagePort</li>
+      <li><strong>Configure your runtime</strong> — UV thread pool, semi-space, heap size</li>
+    </ol>
+  </section>
+
+  <section>
+    <h3>Libraries Used</h3>
+    <table class="benchmark" style="font-size: 0.7em;">
+      <thead>
+        <tr><th>Package</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>@nxtedition/timers</td><td>Pooled timer management</td></tr>
+        <tr><td>@nxtedition/yield</td><td>Cooperative event loop yielding</td></tr>
+        <tr><td>@nxtedition/scheduler</td><td>Priority-based task scheduling</td></tr>
+        <tr><td>@nxtedition/slice</td><td>Zero-alloc buffer management</td></tr>
+        <tr><td>@nxtedition/shared</td><td>Lock-free cross-thread ring buffer</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Thank You!</h2>
+    <p>Malmö JS 2026</p>
+    <p class="small">Slides & code: <a href="https://github.com/ronag/malmojs-2026">github.com/ronag/malmojs-2026</a></p>
+  </section>
+</section>

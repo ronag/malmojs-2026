@@ -1,0 +1,42 @@
+{
+  "name": "malmojs-2026",
+  "version": "1.0.0",
+  "description": "Performance in Node.js — Malmö JS 2026 presentation",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "bench": "node --expose-gc benchmarks/timers.mjs && node --expose-gc benchmarks/closures.mjs && node --expose-gc benchmarks/async-overhead.mjs && node --expose-gc benchmarks/slice.mjs && node --expose-gc benchmarks/gc-pressure.mjs",
+    "bench:timers": "node --expose-gc benchmarks/timers.mjs",
+    "bench:closures": "node --expose-gc benchmarks/closures.mjs",
+    "bench:async": "node --expose-gc benchmarks/async-overhead.mjs",
+    "bench:slice": "node --expose-gc benchmarks/slice.mjs",
+    "bench:gc": "node --expose-gc benchmarks/gc-pressure.mjs",
+    "bench:cache": "node --expose-gc benchmarks/cache.mjs",
+    "bench:shared": "node --expose-gc benchmarks/cross-thread.mjs",
+    "bench:atomics": "node --expose-gc benchmarks/atomics.mjs",
+    "bench:queue": "node --expose-gc benchmarks/function-queue.mjs",
+    "bench:async-return": "node --expose-gc benchmarks/async-return.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronag/malmojs-2026.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ronag/malmojs-2026/issues"
+  },
+  "homepage": "https://github.com/ronag/malmojs-2026#readme",
+  "dependencies": {
+    "@nxtedition/scheduler": "^3.0.12",
+    "@nxtedition/shared": "^1.0.13",
+    "@nxtedition/slice": "^1.0.10",
+    "@nxtedition/timers": "^1.0.2",
+    "@nxtedition/yield": "^1.0.11",
+    "lru-cache": "^11.2.6",
+    "mitata": "^1.0.34",
+    "reveal.js": "^5.2.1"
+  }
+}

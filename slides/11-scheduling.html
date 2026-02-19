@@ -1,0 +1,103 @@
+<!-- 9. SCHEDULING & PRIORITIES -->
+<section id="scheduling">
+  <section class="section-header">
+    <h2>Scheduling &amp; Priorities</h2>
+    <p><span class="npm-badge">@nxtedition/scheduler</span></p>
+  </section>
+
+  <section>
+    <h3>The Problem</h3>
+    <ul class="spaced">
+      <li>Node.js has a single event loop — all work competes equally</li>
+      <li>A background task can starve a latency-sensitive request</li>
+      <li>No built-in mechanism for task priorities</li>
+      <li>libuv thread pool is shared — fs, crypto, DNS all compete</li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Priority-Based Scheduling</h3>
+    <pre><code class="language-javascript">import { Scheduler } from '@nxtedition/scheduler'
+
+const scheduler = new Scheduler({ concurrency: 4 })
+
+// High priority — latency-sensitive work
+await scheduler.run(() => handleApiRequest(req), 'high')
+
+// Normal priority — standard work
+await scheduler.run(() => processMessage(msg), 'normal')
+
+// Low priority — background tasks
+await scheduler.run(() => generateReport(), 'low')
+
+// 7 priority levels:
+// highest (3) → higher (2) → high (1) → normal (0)
+// → low (-1) → lower (-2) → lowest (-3)</code></pre>
+  </section>
+
+  <section>
+    <h3>Starvation Prevention</h3>
+    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Bit manipulation on an incrementing counter — <code>if (counter &amp; bit)</code></p>
+    <div class="diagram-box" style="font-size:0.65em">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#e7ad52;font-weight:bold">highest</span>
+          <div style="background:#e7ad52;height:18px;border-radius:3px;width:50%"></div>
+          <span style="color:#999">~50%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#dba044;font-weight:bold">higher</span>
+          <div style="background:#dba044;height:18px;border-radius:3px;width:25%"></div>
+          <span style="color:#999">~25%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#c99636;font-weight:bold">high</span>
+          <div style="background:#c99636;height:18px;border-radius:3px;width:12.5%"></div>
+          <span style="color:#999">~12.5%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#b08c2e;font-weight:bold">normal</span>
+          <div style="background:#b08c2e;height:18px;border-radius:3px;width:6.25%"></div>
+          <span style="color:#999">~6%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#888;font-weight:bold">low</span>
+          <div style="background:#888;height:18px;border-radius:3px;width:3.125%"></div>
+          <span style="color:#999">~3%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#666;font-weight:bold">lower</span>
+          <div style="background:#666;height:18px;border-radius:3px;width:1.5%"></div>
+          <span style="color:#999">~1.5%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:80px;flex-shrink:0;text-align:right;color:#555;font-weight:bold">lowest</span>
+          <div style="background:#555;height:18px;border-radius:3px;width:0.8%;min-width:4px"></div>
+          <span style="color:#999">~0.8%</span>
+        </div>
+      </div>
+    </div>
+    <div class="insight">
+      Low-priority tasks always make progress, but high-priority tasks get exponentially more time.
+    </div>
+  </section>
+
+  <section>
+    <h3>Cross-Worker Scheduling</h3>
+    <pre><code class="language-javascript">// Main thread: create shared state
+const UV_POOL = parseInt(process.env.UV_THREADPOOL_SIZE || '4', 10)
+const sharedState = Scheduler.makeSharedState(UV_POOL)
+
+for (let i = 0; i < 4; i++) {
+  new Worker('./http-worker.js', { workerData: { sharedState } })
+}
+
+// Worker: all workers share the concurrency limit
+const scheduler = new Scheduler(workerData.sharedState)
+// 4 workers sharing 4 UV thread pool slots = no oversubscription</code></pre>
+    <div class="insight">
+      Without coordination, 4 workers can each try to use all 4 UV thread pool slots
+      = 16 tasks competing for 4 slots = massive contention.
+    </div>
+  </section>
+</section>

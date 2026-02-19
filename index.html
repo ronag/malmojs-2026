@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance in Node.js — Malmö JS 2026</title>
+  <link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+  <link rel="stylesheet" href="node_modules/reveal.js/dist/theme/black.css">
+  <link rel="stylesheet" href="node_modules/reveal.js/plugin/highlight/monokai.css">
+  <link rel="stylesheet" href="css/custom.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!--
+  Slides are split into separate files for easier editing.
+  Each file in slides/ is a self-contained <section> (or nested sections).
+  To add a new topic:
+    1. Create a new file in slides/ (e.g. slides/20-new-topic.html)
+    2. Add a <div data-include="slides/20-new-topic.html"></div> below
+-->
+
+<!-- Foundation: Why & What -->
+<div data-include="slides/00-title.html"></div>
+<div data-include="slides/01-dev-vs-compute-cost.html"></div>
+<div data-include="slides/02-garbage-collection.html"></div>
+
+<!-- Core Patterns: Allocation-free building blocks -->
+<div data-include="slides/03-callbacks-vs-closures.html"></div>
+<div data-include="slides/04-intrusive-containers.html"></div>
+<div data-include="slides/12-buffers-and-slices.html"></div>
+
+<!-- Async: When sync beats async -->
+<div data-include="slides/05-async-overhead.html"></div>
+<div data-include="slides/06-async-return-pattern.html"></div>
+<div data-include="slides/07-sync-vs-async.html"></div>
+
+<!-- Single-Thread Optimizations -->
+<div data-include="slides/08-fast-timers.html"></div>
+<div data-include="slides/09-fast-cache.html"></div>
+<div data-include="slides/10-yielding.html"></div>
+<div data-include="slides/11-scheduling.html"></div>
+
+<!-- Multi-Thread: Scaling across cores -->
+<div data-include="slides/13-concurrency-vs-parallelism.html"></div>
+<div data-include="slides/14-cluster-vs-workers.html"></div>
+<div data-include="slides/17-uv-threadpool.html"></div>
+<div data-include="slides/15-cross-thread.html"></div>
+<div data-include="slides/16-atomics.html"></div>
+
+<!-- Tuning & Wrap-up -->
+<div data-include="slides/18-gc-flags.html"></div>
+<div data-include="slides/19-summary.html"></div>
+
+</div><!-- /.slides -->
+</div><!-- /.reveal -->
+
+<script src="node_modules/reveal.js/dist/reveal.js"></script>
+<script src="node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+<script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+<script>
+// Load all slide includes, then initialize Reveal
+async function loadSlides() {
+  const includes = document.querySelectorAll('[data-include]')
+  await Promise.all(Array.from(includes).map(async (el) => {
+    const resp = await fetch(el.getAttribute('data-include'))
+    if (resp.ok) {
+      el.outerHTML = await resp.text()
+    } else {
+      console.error(`Failed to load ${el.getAttribute('data-include')}`)
+    }
+  }))
+}
+
+loadSlides().then(() => {
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    transition: 'slide',
+    width: 1280,
+    height: 720,
+    margin: 0.01,
+    center: true,
+    controls: false,
+    progress: false,
+    plugins: [RevealHighlight, RevealNotes],
+  })
+})
+</script>
+</body>
+</html>

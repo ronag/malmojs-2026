@@ -1,0 +1,125 @@
+<!-- 7. FAST TIMERS -->
+<section id="fast-timers">
+  <section class="section-header">
+    <h2>Fast Timers</h2>
+    <p><span class="npm-badge">@nxtedition/timers</span></p>
+  </section>
+
+  <section>
+    <h3>Why Native Timers Are "Expensive"</h3>
+    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Each <code style="color:#e7ad52">setTimeout</code> creates a C++ TimerWrap object</p>
+    <!-- What each timer allocates -->
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">libuv timer handle</div>
+        <div style="color:#999;font-size:0.7em">OS resource allocation per timer</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">V8 weak reference</div>
+        <div style="color:#999;font-size:0.7em">Registered in weak ref table</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">GC traced every cycle</div>
+        <div style="color:#999;font-size:0.7em">C++ handle must be walked</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Cleanup on fire/clear</div>
+        <div style="color:#999;font-size:0.7em">C++ destructor + deregistration</div>
+      </div>
+    </div>
+    <!-- Scale impact -->
+    <div class="diagram-box" style="padding:12px 16px;border-color:#e7ad52">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;font-size:0.9em">
+        <div style="text-align:center">
+          <div style="color:#e7ad52;font-weight:bold;font-size:1.4em">10,000</div>
+          <div style="color:#999;font-size:0.85em">concurrent connections</div>
+        </div>
+        <div style="color:#666;font-size:1.4em">&times;</div>
+        <div style="text-align:center">
+          <div style="color:#e7ad52;font-weight:bold;font-size:1.4em">1</div>
+          <div style="color:#999;font-size:0.85em">idle timeout each</div>
+        </div>
+        <div style="color:#666;font-size:1.4em">=</div>
+        <div style="text-align:center">
+          <div style="color:#ff5252;font-weight:bold;font-size:1.4em">10,000</div>
+          <div style="color:#999;font-size:0.85em">C++ objects for GC to trace <strong style="color:#ff5252">every cycle</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Pooled Timers — The Solution</h3>
+    <pre><code class="language-javascript">import { setTimeout, clearTimeout } from '@nxtedition/timers'
+
+// For delays >= 1000ms: uses a SINGLE shared timer
+// that fires every 500ms and checks all pending timers
+const handle = setTimeout((ctx) => console.log('hello'), 5000)
+
+// For delays < 1000ms: falls through to native setTimeout
+// (full resolution needed for short timers)
+const fast = setTimeout(() => console.log('hellow'), 50)
+
+// clearTimeout works for both
+clearTimeout(handle)
+clearTimeout(fast)</code></pre>
+  </section>
+
+  <section>
+    <h3>How It Works Internally</h3>
+    <pre><code class="language-javascript">// ONE shared timer fires every 500ms
+let fastNow = 0; const fastTimers = []
+
+function onTimeout() {
+  fastNow += 500
+  let idx = 0
+  while (idx < fastTimers.length) {
+    const timer = fastTimers[idx]
+    if (timer.state > 0 && fastNow >= timer.state) {
+      timer.state = -1                    // mark as fired
+      timer.callback(timer.opaque)        // opaque, not closure!
+    }
+    if (timer.state === -1) {
+      fastTimers[idx] = fastTimers.pop()  // swap-remove O(1)
+    } else {
+      idx++
+    }
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h3>Benchmarks</h3>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Benchmark</th><th>Native setTimeout</th><th>Pooled setTimeout</th><th>Speedup</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>create + clear</td>
+          <td>250.91 ns</td>
+          <td>58.90 ns</td>
+          <td class="speedup">4.3x</td>
+        </tr>
+        <tr>
+          <td>create + clear (GC)</td>
+          <td>1.95 &micro;s</td>
+          <td>73.99 ns</td>
+          <td class="speedup">26.4x</td>
+        </tr>
+        <tr>
+          <td>batch create+clear 100x (GC)</td>
+          <td>41.84 &micro;s</td>
+          <td>9.80 &micro;s</td>
+          <td class="speedup">4.3x</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      Under GC pressure the advantage is <strong>26x</strong>.
+      Native timer handles are expensive C++ objects for the GC to trace.
+      Pooled timers are plain JS objects — invisible to the C++ GC.
+    </div>
+  </section>
+</section>

@@ -1,0 +1,77 @@
+<!-- 1. DEVELOPER COST VS COMPUTE COST -->
+<section id="dev-vs-compute-cost">
+  <section class="section-header">
+    <h2>Developer Cost vs Compute Cost</h2>
+    <p>The most important optimization decision</p>
+  </section>
+
+  <section>
+    <h3>The Economics</h3>
+    <ul class="spaced">
+      <li>Senior developer: ~$150k–250k/year</li>
+      <li>AWS EC2 instance (c7g.xlarge): ~$1,100/year</li>
+      <li>One developer ≈ cost of <strong>150 servers</strong></li>
+      <li>
+        <div class="insight">
+          "Premature optimization is the root of all evil" — Knuth<br>
+          But knowing <em>where</em> to optimize is the root of all good.
+        </div>
+      </li>
+    </ul>
+    <aside class="notes">
+      The point isn't "don't optimize." The point is: optimize the right things.
+      When your code runs on 100+ servers, saving 10% CPU saves real money.
+      When it runs on 2 servers, spend that time on features instead.
+    </aside>
+  </section>
+
+  <section>
+    <h3>When to Optimize</h3>
+    <ul class="spaced">
+      <li><strong>Hot paths</strong> — code that runs millions of times/sec</li>
+      <li><strong>High scale</strong> — 100+ servers, every % matters</li>
+      <li><strong>Latency-sensitive</strong> — real-time, trading, media</li>
+      <li><strong>Resource-constrained</strong> — edge, IoT, embedded</li>
+    </ul>
+    <div class="warning">
+      Don't optimize code that runs once per request on 2 servers.
+      <strong>Measure first</strong>, then decide.
+    </div>
+  </section>
+
+  <section>
+    <h3>The Real Cost Equation</h3>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:880px;margin:0 auto">
+      <div class="diagram-box" style="padding:14px 20px;border-color:#4ec9b0">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-family:'Times New Roman',Georgia,serif;font-size:1.05em;color:#4ec9b0;white-space:nowrap">
+            <span style="font-style:italic">compute savings</span><sub style="font-size:0.7em">/year</sub> &gt; <span style="font-style:italic">dev hours</span> &times; <span style="font-style:italic">hourly rate</span>
+          </div>
+          <div style="color:#555;font-size:1.2em">⟹</div>
+          <div style="color:#ccc;font-size:0.75em"><strong style="color:#fff">Optimize.</strong> The math works out.</div>
+        </div>
+      </div>
+      <div class="diagram-box" style="padding:14px 20px;border-color:#e7ad52">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-family:'Times New Roman',Georgia,serif;font-size:1.05em;color:#e7ad52;white-space:nowrap">
+            <span style="font-style:italic">maintainability</span> &darr;
+          </div>
+          <div style="color:#555;font-size:1.2em">⟹</div>
+          <div style="color:#ccc;font-size:0.75em"><strong style="color:#fff">Factor in future dev cost.</strong> Clever code has compound interest.</div>
+        </div>
+      </div>
+      <div class="diagram-box" style="padding:14px 20px;border-color:#569cd6">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-family:'Times New Roman',Georgia,serif;font-size:1.05em;color:#569cd6;white-space:nowrap">
+            <span style="font-style:italic">savings</span> &times; <span style="font-style:italic">N</span><sub style="font-size:0.7em">consumers</sub>
+          </div>
+          <div style="color:#555;font-size:1.2em">⟹</div>
+          <div style="color:#ccc;font-size:0.75em"><strong style="color:#fff">Shared library?</strong> Multiplied savings — <strong style="color:#4ec9b0">almost always worth it.</strong></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      Shared libraries are the sweet spot — you optimize once, everyone benefits.
+    </aside>
+  </section>
+</section>

@@ -1,0 +1,137 @@
+<!-- 2. COST OF GARBAGE COLLECTION -->
+<section id="garbage-collection">
+  <section class="section-header">
+    <h2>Cost of Garbage Collection</h2>
+    <p>Young generation vs Old generation</p>
+  </section>
+
+  <section>
+    <h3>V8's Generational GC</h3>
+    <div class="diagram-box">
+      <div class="diagram-title">V8 Heap</div>
+      <div class="diagram-row">
+        <div class="diagram-cell good">
+          <h4>Young Gen</h4>
+          <div class="subtitle">Scavenge</div>
+          <ul>
+            <li>~1–128 MB</li>
+            <li>~1 ms pause</li>
+            <li>Very fast</li>
+          </ul>
+        </div>
+        <div class="diagram-cell bad">
+          <h4>Old Gen</h4>
+          <div class="subtitle">Mark-Sweep-Compact</div>
+          <ul>
+            <li>~thousands of MB</li>
+            <li>~10–1000+ ms pause</li>
+            <li>Expensive</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      V8 uses a generational garbage collector. Most objects die young.
+      The young generation is collected frequently but cheaply.
+      The old generation is collected rarely but it's expensive.
+    </aside>
+  </section>
+
+  <section>
+    <h3>The Generational Hypothesis</h3>
+    <ul class="spaced">
+      <li><strong>Most objects die young</strong> — allocated, used briefly, discarded</li>
+      <li><strong>Scavenge (Minor GC)</strong>: copies survivors to "to-space", very fast</li>
+      <li><strong>Mark-Sweep-Compact (Major GC)</strong>: walks entire old generation heap</li>
+      <li>Objects that survive 2 scavenges get <strong>promoted to old generation</strong></li>
+    </ul>
+    <div class="insight">
+      Goal: keep objects short-lived (young gen) or truly long-lived (old gen).
+      The worst case is medium-lived objects that get promoted then die.
+    </div>
+  </section>
+
+  <section>
+    <h3>What Makes GC Expensive</h3>
+    <pre><code class="language-javascript">// BAD: Objects survive into old generation
+const cache = new Map()
+function process(data) {
+  const result = { ...data, processed: true }
+  cache.set(data.id, result)  // retained → promoted → expensive GC
+}
+
+// GOOD: Short-lived objects die in young generation
+function process(data) {
+  return transform(data)  // dies after return — cheap scavenge
+}
+
+// BEST: Avoid allocation entirely — reuse objects
+const reusable = { buffer: null, offset: 0, length: 0 }
+function process(data) {
+  reusable.buffer = data.buffer
+  reusable.offset = data.offset
+  return handle(reusable)
+}</code></pre>
+  </section>
+
+  <section>
+    <h3>GC Impact on Latency</h3>
+    <ul class="spaced">
+      <li>Minor GC (Scavenge): <strong>~0.5–2 ms</strong> — usually fine</li>
+      <li>Major GC (Mark-Compact): <strong>~10–100+ ms</strong> — P99 killer</li>
+      <li>GC blocks your event loop</li>
+      <li>More objects → more work for the GC → higher tail latency</li>
+    </ul>
+    <div class="insight">
+      Every object you allocate is work for the GC. Caching reduces allocations but
+      creates long-lived objects the GC must trace on every major collection —
+      even if you never touch them again. Choose your trade-off deliberately.
+    </div>
+  </section>
+
+  <section>
+    <h3>GC: Less Visible ≠ Free</h3>
+    <div class="warning">
+      Modern V8 does much GC work on background threads — so you may not see event loop lag.
+      But GC still consumes CPU cores, memory bandwidth, and cache lines. Less visible ≠ free.
+      On a busy server, GC load competes with your actual work for system resources.
+    </div>
+    <ul class="spaced">
+      <li>Background GC threads compete for <strong>CPU cores</strong> with your application</li>
+      <li>Tracing objects pollutes <strong>CPU caches</strong> — evicts your hot data</li>
+      <li>More live objects = more memory bandwidth consumed by the GC</li>
+      <li>On a multi-tenant server, GC load from one process affects <strong>all others</strong></li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Object Pooling — Trade-offs</h3>
+    <div style="display:flex;gap:12px;margin-bottom:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Reuse = fewer allocations</div>
+        <div style="color:#999;font-size:0.7em">No young-gen churn, no promotion, no scavenge pressure</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Large pool = large old-gen heap</div>
+        <div style="color:#999;font-size:0.7em">Every pooled object must be traced on major GC — even if idle</div>
+      </div>
+    </div>
+    <pre><code class="language-javascript">// Unbounded pool — DANGEROUS
+const pool = []
+function release(obj) { pool.push(obj) }  // pool grows forever
+// 100k idle objects in old gen → major GC must trace them all
+
+// Bounded pool — SAFE
+const MAX = 1000
+function release(obj) {
+  if (pool.length < MAX) pool.push(obj)   // cap the pool size
+  // else: let GC collect it — that's fine
+}</code></pre>
+    <div class="warning">
+      Pooling reduces allocation cost but increases major GC tracing cost.
+      Always bound your pool size — an unbounded pool is a memory leak that also makes GC slower.
+      A bounded pool that constantly overflows is worse than no pool: you pay the tracing cost
+      for pooled objects AND the allocation cost for the overflow. Size pools to actual reuse.
+    </div>
+  </section>
+</section>

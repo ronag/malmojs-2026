@@ -1,0 +1,148 @@
+<!-- 3. CALLBACKS WITH OPAQUE VS CLOSURES -->
+<section id="callbacks-vs-closures">
+  <section class="section-header">
+    <h2>Callbacks w/ Opaque vs Closures</h2>
+    <p>Avoiding hidden allocation costs</p>
+  </section>
+
+  <section>
+    <h3>The Hidden Cost of Closures</h3>
+    <div class="columns">
+      <div class="col">
+        <h4>Closure (allocates)</h4>
+        <pre><code class="language-javascript">function sendLater(ctx) {
+  // Creates a new closure object
+  // every single call
+  setTimeout(() => {
+    ctx.connection.write(ctx.payload)
+  }, 5000)
+}
+
+// Each call allocates:
+// - A new function object
+// - A closure context capturing ctx</code></pre>
+      </div>
+      <div class="col">
+        <h4>Opaque (zero alloc)</h4>
+        <pre><code class="language-javascript">function onTimeout(ctx) {
+  ctx.connection.write(ctx.payload)
+}
+
+function sendLater(ctx) {
+  // Passes data directly — no closure
+  setTimeout(onTimeout, 5000, ctx)
+}
+
+// The callback is a static reference
+// Only the data object is allocated</code></pre>
+      </div>
+    </div>
+    <aside class="notes">
+      Closures are one of the most common hidden allocation sources.
+      The opaque data pattern passes context explicitly, avoiding closure allocation.
+    </aside>
+  </section>
+
+  <section>
+    <h3>Why This Matters at Scale</h3>
+    <pre><code class="language-javascript">// HTTP server with 10,000 concurrent connections
+// Each with an idle timeout
+
+// Closure approach: 10,000 closure objects created + collected
+connections.forEach(conn => {
+  setTimeout(() => { conn.close('idle timeout') }, 30e3) // ← new closure per connection
+})
+
+// Opaque approach: 0 closure objects
+function onIdle(conn) {
+  conn.close('idle timeout')
+}
+connections.forEach(conn => {
+  setTimeout(onIdle, 30000, conn)  // ← static function ref
+})</code></pre>
+    <div class="insight">
+      At 10k connections with 30s timeout, you're creating and collecting
+      10k closure objects every 30 seconds. That's pure GC pressure for nothing.
+    </div>
+  </section>
+
+  <section>
+    <h3>Function Queue: Closures vs Flat Array</h3>
+    <div class="columns">
+      <div class="col">
+        <h4>Closure queue</h4>
+        <pre><code class="language-javascript">class ClosureQueue {
+  push(fn) {
+    this.fns[this.tail++] = fn
+  }
+  drain() {
+    while (this.head < this.tail) {
+      this.fns[this.head]()
+      this.fns[this.head++] = undefined
+    }
+    this.head = this.tail = 0
+  }
+}
+
+// Each push allocates a closure
+queue.push(() => handler(ctx))</code></pre>
+      </div>
+      <div class="col">
+        <h4>Flat queue (cb + opaque)</h4>
+        <pre><code class="language-javascript">class FlatQueue {
+  push(fn, opaque) {
+    this.fns[this.tail++] = fn
+    this.fns[this.tail++] = opaque
+  }
+  drain() {
+    while (this.head < this.tail) {
+      const fn = this.fns[this.head]
+      const opaque = this.fns[this.head + 1]
+      this.fns[this.head] = undefined
+      this.fns[this.head + 1] = undefined
+      this.head += 2
+      fn(opaque)
+    }
+    this.head = this.tail = 0
+  }
+}
+// Static function ref — zero alloc
+queue.push(handler, ctx)</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Queue Benchmarks</h3>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Scenario</th><th>Closure Queue</th><th>Flat Queue</th><th>Speedup</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>push+drain 100</td>
+          <td>1.69 µs</td>
+          <td>1.43 µs</td>
+          <td class="speedup">1.2x</td>
+        </tr>
+        <tr>
+          <td>push+drain 1000</td>
+          <td>10.72 µs</td>
+          <td>4.66 µs</td>
+          <td class="speedup">2.3x</td>
+        </tr>
+        <tr>
+          <td>GC pressure (100)</td>
+          <td>9.42 KB</td>
+          <td>~0 B</td>
+          <td class="speedup">zero alloc</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      The flat queue stores <code>[callback, opaque]</code> pairs — zero allocations.
+      At scale, this eliminates thousands of closure objects per drain cycle.
+    </div>
+  </section>
+</section>

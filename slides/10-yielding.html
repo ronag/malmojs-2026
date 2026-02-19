@@ -1,0 +1,58 @@
+<!-- 8. YIELDING & EVENT LOOP LAG -->
+<section id="yielding">
+  <section class="section-header">
+    <h2>Yielding &amp; Event Loop Lag</h2>
+    <p><span class="npm-badge">@nxtedition/yield</span></p>
+  </section>
+
+  <section>
+    <h3>The Problem: Event Loop Starvation</h3>
+    <div class="diagram-box">
+      <div class="diagram-title">Event Loop Turn</div>
+      <div class="block-bar">Your synchronous code: 200ms</div>
+      <div class="blocked-label">Everything else BLOCKED:</div>
+      <ul class="blocked-list">
+        <li>Incoming HTTP requests</li>
+        <li>Timer callbacks</li>
+        <li>I/O completions</li>
+        <li>setImmediate callbacks</li>
+      </ul>
+    </div>
+    <p>If your code runs for 200ms synchronously, <br>
+      <strong>nothing else happens for 200ms</strong>.</p>
+  </section>
+
+  <section>
+    <h3>Cooperative Yielding</h3>
+    <pre><code class="language-javascript">import { maybeYield } from '@nxtedition/yield'
+
+// Yield to the event loop if we've exceeded the time budget (40ms)
+for (const row of db.prepare('SELECT * FROM huge_table').iterate()) {
+  processRow(row)
+  const yielded = maybeYield() // returns Promise or undefined
+  if (yielded) {
+    await yielded  // Give the event loop a turn
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h3>How It Works</h3>
+    <pre><code class="language-javascript">// Tracks time since last yield using performance.now()
+let yieldTime = performance.now()
+let yieldTimeout = 40  // default — loosely based on keeping lag manageable
+
+function shouldYield(timeout = yieldTimeout) {
+  return performance.now() - yieldTime >= timeout
+}
+
+function maybeYield() {
+  // return undefined or add to queue and batch drain with setImmediate
+  return shouldYield() ? new Promise(doYield) : undefined
+}</code></pre>
+    <div class="insight">
+      Yielding lets you use sync APIs (readFileSync, DatabaseSync) on the main thread
+      without starving the event loop. Do real work, yield, repeat — best of both worlds.
+    </div>
+  </section>
+</section>

@@ -1,0 +1,146 @@
+<!-- 13. CROSS-THREAD COMMUNICATION -->
+<section id="cross-thread">
+  <section class="section-header">
+    <h2>Cross-Thread Communication</h2>
+    <p><span class="npm-badge">@nxtedition/shared</span></p>
+  </section>
+
+  <section>
+    <h3>Why MessagePort Is Slow</h3>
+    <pre><code class="language-javascript">// MessagePort uses structured clone (serialization)
+parentPort.postMessage({ type: 'log', data: largeObject })
+// 1. Serialize (deep copy) → 2. Copy across boundary
+// 3. Deserialize (new objects) → 4. GC collects BOTH copies
+
+// Transferable? Still slow:
+parentPort.postMessage(buffer, [buffer.buffer])
+// ArrayBuffer neutered in sender, new wrapper in receiver
+// Coordination overhead, can only transfer not share</code></pre>
+  </section>
+
+  <section>
+    <h3>Ring Buffer — Data Inline, Cache Friendly</h3>
+    <div class="diagram-box">
+      <div class="diagram-title">SharedArrayBuffer (contiguous memory, shared between threads)</div>
+      <div class="ring-segment">
+        <div class="ring-title">sharedState (128 bytes)</div>
+        <div class="diagram-row" style="gap:0">
+          <div style="flex:1;border:1px solid #4ec9b0;padding:8px 12px;border-radius:4px 0 0 4px;background:rgba(78,201,176,0.08)">
+            <div style="color:#4ec9b0;font-weight:bold;font-size:0.9em">WRITE_INDEX</div>
+            <div style="color:#888;font-size:0.8em">cache line 0 — byte 0</div>
+          </div>
+          <div style="flex:1;border:1px solid #e7ad52;border-left:none;padding:8px 12px;border-radius:0 4px 4px 0;background:rgba(231,173,82,0.08)">
+            <div style="color:#e7ad52;font-weight:bold;font-size:0.9em">READ_INDEX</div>
+            <div style="color:#888;font-size:0.8em">cache line 1 — byte 64</div>
+          </div>
+        </div>
+        <div style="text-align:center;color:#999;font-size:0.8em;margin-top:6px">← 64 bytes apart → false sharing prevention</div>
+      </div>
+      <div class="ring-segment">
+        <div class="ring-title">sharedBuffer (ring, e.g. 4 MB)</div>
+        <div class="ring-cells">
+          <div class="cell len">len₁<br><span style="font-size:0.8em">4b</span></div>
+          <div class="cell data">data₁<br><span style="font-size:0.8em">inline</span></div>
+          <div class="cell len">len₂<br><span style="font-size:0.8em">4b</span></div>
+          <div class="cell data">data₂<br><span style="font-size:0.8em">inline</span></div>
+          <div class="cell len">len₃<br><span style="font-size:0.8em">4b</span></div>
+          <div class="cell data">data₃<br><span style="font-size:0.8em">inline</span></div>
+        </div>
+        <div class="ring-pointers">
+          <span>↑ readPos</span>
+          <span>↑ writePos</span>
+        </div>
+        <div class="ring-note">
+          Data is <strong style="color:#ccc">INLINE</strong> — no pointers, no indirection. Sequential reads hit L1/L2 cache.
+          Wraps circularly, no reallocation.
+        </div>
+      </div>
+    </div>
+    <div class="insight">
+      Messages stored inline = sequential memory access = CPU cache friendly.<br>
+      No pointer chasing, no heap allocation, no GC involvement.
+    </div>
+  </section>
+
+  <section>
+    <h3>API</h3>
+    <pre><code class="language-javascript">import { alloc, reader, writer } from '@nxtedition/shared'
+
+// Allocate shared memory (visible to all threads)
+const shared = alloc(4 * 1024 * 1024) // 4 MB ring buffer
+
+// Writer thread
+const w = writer(shared)
+w.writeSync(data.length, ({ buffer, offset }) => {
+  data.copy(buffer, offset)
+  return offset + data.length
+})
+
+// Reader thread
+const r = reader(shared)
+r.readSome(({ buffer, offset, length }) => {
+  // Zero-copy read — directly access shared memory
+  // No serialization, no deserialization, no allocation
+  processData(buffer, offset, length)
+})</code></pre>
+  </section>
+
+  <section>
+    <h3>Key Optimizations</h3>
+    <pre><code class="language-javascript">// 1. False sharing prevention — 64-byte cache line separation
+const WRITE_INDEX = 0   // byte 0
+const READ_INDEX = 16   // byte 64 (separate cache line!)
+
+// 2. Batched atomics (corking)
+w.cork(() => {
+  for (const item of items) w.writeSync(size, fn)
+}) // Single Atomics.store when cork() returns
+
+// 3. Zero-copy reads — reuse same descriptor object
+const data = { buffer, view, offset: 0, length: 0 }
+
+// 4. Data inline in ring → sequential L1/L2 cache hits
+// 5. Atomics.wait for efficient blocking
+Atomics.wait(state, READ_INDEX, readPos, delay)</code></pre>
+  </section>
+
+  <section>
+    <h3>Ring Buffer vs MessagePort</h3>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Operation</th><th>Ring Buffer</th><th>MessagePort</th><th>Speedup</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>send 64 bytes</td>
+          <td>90 ns</td>
+          <td>330 ns</td>
+          <td class="speedup">3.7x</td>
+        </tr>
+        <tr>
+          <td>send 1024 bytes</td>
+          <td>271 ns</td>
+          <td>427 ns</td>
+          <td class="speedup">1.6x</td>
+        </tr>
+        <tr>
+          <td>send object (JSON)</td>
+          <td>178 ns</td>
+          <td>375 ns</td>
+          <td class="speedup">2.1x</td>
+        </tr>
+        <tr>
+          <td>batch 100 messages</td>
+          <td>4.3 µs</td>
+          <td>46.8 µs</td>
+          <td class="speedup">10.9x</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0 — .gc('inner') enabled</p>
+    <div class="insight">
+      3.7x faster for small messages, 11x faster batched.<br>
+      Ring buffer: zero-copy, inline data, no serialization, no GC pressure.
+    </div>
+  </section>
+</section>
