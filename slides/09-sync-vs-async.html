@@ -65,12 +65,12 @@
       <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#569cd6">
         <div style="color:#569cd6;font-weight:bold;font-size:0.9em;margin-bottom:6px">Async</div>
         <pre style="margin:0;box-shadow:none;font-size:1.1em"><code class="language-javascript">fs.read(fd, buf, 0, len, 0, cb)</code></pre>
-        <div style="color:#999;font-size:0.75em;margin-top:6px">Thread pool + callback + async context</div>
+        <div style="color:#999;font-size:0.75em;margin-top:6px">Thread pool + syscall + callback + async context</div>
       </div>
       <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.9em;margin-bottom:6px">Sync</div>
         <pre style="margin:0;box-shadow:none;font-size:1.1em"><code class="language-javascript">fs.readSync(fd, buf, 0, len, 0)</code></pre>
-        <div style="color:#999;font-size:0.75em;margin-top:6px">Direct syscall + V8 Fast API</div>
+        <div style="color:#999;font-size:0.75em;margin-top:6px">V8 Fast API + syscall</div>
       </div>
     </div>
     <table class="benchmark">

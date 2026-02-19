@@ -74,7 +74,7 @@
     <h3>Implementation — get()</h3>
     <pre><code class="language-javascript">  get(key) {
     const item = this.#map.get(key)
-    if (item !== undefined) item[kTick] = ++this.#tick
+    if (item !== undefined) item[kCacheTick] = ++this.#tick
     return item
   }</code></pre>
   </section>
@@ -82,12 +82,12 @@
   <section>
     <h3>Implementation — set()</h3>
     <pre><code class="language-javascript">  set(key, item) {
-    if (item[kCacheIdx] !== -1) { item[kTick] = ++this.#tick; return }
+    if (item[kCacheIdx] !== -1) { item[kCacheTick] = ++this.#tick; return }
 
     if (this.#arr.length >= this.#capacity) {
       const i = (Math.random() * this.#arr.length) | 0
       const j = (Math.random() * this.#arr.length) | 0
-      const idx = this.#arr[i][kTick] <= this.#arr[j][kTick] ? i : j
+      const idx = this.#arr[i][kCacheTick] <= this.#arr[j][kCacheTick] ? i : j
       const evicted = this.#arr[idx]
       this.#map.delete(evicted[kCacheKey])
       const last = this.#arr.pop() // swap-remove
@@ -97,7 +97,7 @@
       evicted[kCacheIdx] = -1
     }
     item[kCacheKey] = key
-    item[kTick] = ++this.#tick
+    item[kCacheTick] = ++this.#tick
     item[kCacheIdx] = this.#arr.length
     this.#arr.push(item); this.#map.set(key, item)
   }</code></pre>

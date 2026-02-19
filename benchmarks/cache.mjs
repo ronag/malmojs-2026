@@ -6,7 +6,7 @@ import { LRUCache } from 'lru-cache'
 // Items store their own array index (_cacheIdx) — swap-remove for O(1) delete
 // Eviction: pick 2 random indices from array, evict older one (lower tick)
 
-const kTick = Symbol('kTick')
+const kCacheTick = Symbol('kCacheTick')
 const kCacheIdx = Symbol('kCacheIdx')
 const kCacheKey = Symbol('kCacheKey')
 
@@ -23,15 +23,18 @@ class FastCache {
   get(key) {
     const item = this.#map.get(key)
     if (item !== undefined) {
-      item[kTick] = ++this.#tick
+      item[kCacheTick] = ++this.#tick
     }
     return item
   }
 
   set(key, item) {
+    // wrap around is harmless since we only compare ticks for recency, not absolute value
+    this.#tick = (this.#tick + 1) & 2147483647
+
     if (item[kCacheIdx] !== -1) {
       // Update existing — item already in arr
-      item[kTick] = ++this.#tick
+      item[kCacheTick] = this.#tick
       return
     }
 
@@ -39,7 +42,7 @@ class FastCache {
       // Power-of-2 random choice eviction
       const i = (Math.random() * this.#arr.length) | 0
       const j = (Math.random() * this.#arr.length) | 0
-      const target = (this.#arr[i][kTick] <= this.#arr[j][kTick]) ? i : j
+      const target = (this.#arr[i][kCacheTick] <= this.#arr[j][kCacheTick]) ? i : j
       const evicted = this.#arr[target]
 
       // Remove evicted from map
@@ -58,7 +61,7 @@ class FastCache {
 
     // Add new item
     item[kCacheKey] = key
-    item[kTick] = ++this.#tick
+    item[kCacheTick] = this.#tick
     item[kCacheIdx] = this.#arr.length
     this.#arr.push(item)
     this.#map.set(key, item)
@@ -96,7 +99,7 @@ class CacheableItem {
     this.data = data
     this[kCacheIdx] = -1
     this[kCacheKey] = undefined
-    this[kTick] = 0
+    this[kCacheTick] = 0
   }
 }
 
