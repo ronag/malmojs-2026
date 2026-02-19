@@ -22,24 +22,51 @@ zlib.deflate(buffer, callback)      // Compression
   <section>
     <h3>Configuring the Pool</h3>
     <pre><code class="language-bash"># Set BEFORE requiring anything — must be in environment
-UV_THREADPOOL_SIZE=16 node server.js
+UV_THREADPOOL_SIZE=16 node server.js</code></pre>
+    <div style="display:flex;gap:12px;margin-top:14px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #569cd6">
+        <div style="color:#569cd6;font-weight:bold;font-size:0.8em;margin-bottom:4px">I/O heavy</div>
+        <div style="color:#999;font-size:0.7em">16–64 threads<br>File serving, database proxy</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #c586c0">
+        <div style="color:#c586c0;font-weight:bold;font-size:0.8em;margin-bottom:4px">CPU heavy (crypto)</div>
+        <div style="color:#999;font-size:0.7em">8–16 threads<br>More threads ≠ more throughput</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">Mixed workload</div>
+        <div style="color:#999;font-size:0.7em">16–32 threads<br>Benchmark YOUR workload</div>
+      </div>
+    </div>
+    <div class="warning" style="margin-top:14px">
+      Default is <strong>4 threads</strong> — almost certainly too low for production.<br>
+      The pool is shared across all Worker threads in the same process — more workers = more contention.
+    </div>
+  </section>
 
-# Or in your entry point (MUST be before any I/O):
-# process.env.UV_THREADPOOL_SIZE = '16'  // Too late if I/O already started</code></pre>
-
-    <pre><code class="language-javascript">// Guidelines:
-// - Default: 4 (too low for most servers)
-// - I/O heavy: 16-64 (file serving, database proxy)
-// - CPU heavy (crypto): 8-16 (more threads ≠ more throughput)
-// - Mixed workload: 16-32
-
-// IMPORTANT: More threads = more memory + context switching
-// Find the sweet spot by benchmarking YOUR workload
-// Maximum: 1024 threads</code></pre>
-    <div class="warning">
-      If your Node.js app does any fs, crypto, or DNS operations,
-      the default of 4 threads is almost certainly too low.
-      This is the #1 most impactful configuration change.
+  <section>
+    <h3>Gotchas</h3>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:12px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:6px">Must set early</div>
+        <div style="color:#999;font-size:0.7em">
+          <code style="color:#bbb">UV_THREADPOOL_SIZE</code> is read once — when libuv initializes the pool.
+          Setting it after any I/O has started has no effect.
+        </div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:12px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:6px">More ≠ better</div>
+        <div style="color:#999;font-size:0.7em">
+          More threads = more memory + context switching overhead.
+          Pure fs on SSD can regress with too many threads. Max: 1024.
+        </div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:12px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:6px">Shared across Workers</div>
+        <div style="color:#999;font-size:0.7em">
+          All Worker threads in the same process share one pool.
+          4 workers × 4 pool threads = each worker effectively gets ~1 thread.
+        </div>
+      </div>
     </div>
   </section>
 
@@ -98,10 +125,10 @@ UV_THREADPOOL_SIZE=16 node server.js
     <pre><code class="language-javascript">import { Scheduler } from '@nxtedition/scheduler'
 
 // Know your thread pool size
-const UV_POOL = parseInt(process.env.UV_THREADPOOL_SIZE || '4', 10)
+const poolSize = parseInt(process.env.UV_THREADPOOL_SIZE || '4', 10)
 
 // Share it across workers
-const sharedState = Scheduler.makeSharedState(UV_POOL)
+const sharedState = Scheduler.makeSharedState(poolSize)
 
 // Each worker respects the global limit
 const ioScheduler = new Scheduler(sharedState)

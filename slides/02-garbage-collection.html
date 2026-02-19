@@ -52,6 +52,76 @@
   </section>
 
   <section>
+    <h3>Scavenge vs Mark-Sweep</h3>
+    <!-- Scavenge: copy collector -->
+    <div style="display:flex;gap:16px;margin-bottom:8px">
+      <div style="flex:1">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:6px">Scavenge — Copy Collector (Young Gen)</div>
+        <div style="display:flex;gap:2px;height:30px;margin-bottom:4px">
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#4ec9b0;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">A</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#4ec9b0;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">B</div>
+        </div>
+        <div style="text-align:center;color:#4ec9b0;font-size:0.65em;margin-bottom:4px">copy survivors &darr;</div>
+        <div style="display:flex;gap:2px;height:30px;margin-bottom:6px">
+          <div style="flex:1;background:#4ec9b0;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">A</div>
+          <div style="flex:1;background:#4ec9b0;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">B</div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px"></div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:6px;padding:8px 10px;border-left:3px solid #4ec9b0;font-size:0.6em">
+          <strong style="color:#4ec9b0">Cheap when most objects die — nothing to copy.</strong><br>
+          <span style="color:#999">Cost &prop; survivors. Larger young gen &rarr; more time for objects to die, but also more births. Workload dependent.</span>
+        </div>
+      </div>
+      <!-- Mark-Sweep: trace collector -->
+      <div style="flex:1">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:6px">Mark-Sweep — Trace Collector (Old Gen)</div>
+        <div style="display:flex;gap:2px;height:30px;margin-bottom:4px">
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">A &#10003;</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">B &#10003;</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">C &#10003;</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">D &#10003;</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">E &#10003;</div>
+          <div style="flex:1;background:#555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.6em">dead</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.55em">F &#10003;</div>
+        </div>
+        <div style="font-size:0.55em;color:#ff5252;font-family:monospace;margin-bottom:4px;text-align:center">
+          root &rarr; A &rarr; B &rarr; C &rarr; D &rarr; E &rarr; F &nbsp; <span style="color:#888">(trace all reachable)</span>
+        </div>
+        <div style="text-align:center;color:#e7ad52;font-size:0.65em;margin-bottom:4px">sweep unmarked &darr;</div>
+        <div style="display:flex;gap:2px;height:30px;margin-bottom:6px">
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">A</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">B</div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.55em">free</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">C</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">D</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">E</div>
+          <div style="flex:1;background:#333;border:1px dashed #555;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.55em">free</div>
+          <div style="flex:1;background:#e7ad52;border-radius:3px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">F</div>
+        </div>
+        <div style="background:#1a1a1a;border-radius:6px;padding:8px 10px;border-left:3px solid #ff5252;font-size:0.6em">
+          <strong style="color:#ff5252">Must trace every reachable object. No copying.</strong><br>
+          <span style="color:#999">Cached/pooled objects are traced every major GC — even if idle.</span>
+        </div>
+      </div>
+    </div>
+    <div class="insight">
+      Scavenge is cheap because dead objects cost nothing. Mark-Sweep is expensive because <strong>every live object</strong> costs work to trace.
+    </div>
+  </section>
+
+  <section>
     <h3>What Makes GC Expensive</h3>
     <pre><code class="language-javascript">// BAD: Objects survive into old generation
 const cache = new Map()
@@ -105,7 +175,7 @@ function process(data) {
   </section>
 
   <section>
-    <h3>Object Pooling — Trade-offs</h3>
+    <h3>Object Pooling / Caching — Trade-offs</h3>
     <div style="display:flex;gap:12px;margin-bottom:10px">
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Reuse = fewer allocations</div>
@@ -116,17 +186,23 @@ function process(data) {
         <div style="color:#999;font-size:0.7em">Every pooled object must be traced on major GC — even if idle</div>
       </div>
     </div>
-    <pre><code class="language-javascript">// Unbounded pool — DANGEROUS
-const pool = []
-function release(obj) { pool.push(obj) }  // pool grows forever
+    <pre><code class="language-javascript">function acquire() { pool.pop() || new Obj() }
+
+// Unbounded pool — DANGEROUS
 // 100k idle objects in old gen → major GC must trace them all
+function release(obj) {
+  pool.push(obj) // pool grows forever
+}
 
 // Bounded pool — SAFE
-const MAX = 1000
 function release(obj) {
-  if (pool.length < MAX) pool.push(obj)   // cap the pool size
+  if (pool.length < 1000) pool.push(obj) // cap the pool size
   // else: let GC collect it — that's fine
 }</code></pre>
+  </section>
+
+  <section>
+    <h3>Object Pooling — Pitfalls</h3>
     <div class="warning">
       Pooling reduces allocation cost but increases major GC tracing cost.
       Always bound your pool size — an unbounded pool is a memory leak that also makes GC slower.

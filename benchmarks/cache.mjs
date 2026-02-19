@@ -1,5 +1,5 @@
 // Benchmark: Intrusive power-of-2 random choice cache vs lru-cache
-import { run, bench, group, summary } from 'mitata'
+import { run, bench, group, summary, do_not_optimize } from 'mitata'
 import { LRUCache } from 'lru-cache'
 
 // --- FastCache: Map for lookups + intrusive Array for eviction ---
@@ -124,12 +124,14 @@ summary(() => {
     bench('LRUCache.set', () => {
       const idx = i++ & (CAPACITY - 1)
       lru.set(keys[idx], items[idx])
+      do_not_optimize(lru.size)
     }).gc('inner')
 
     let j = 0
     bench('FastCache.set (intrusive)', () => {
       const idx = j++ & (CAPACITY - 1)
       fast.set(keys[idx], items[idx])
+      do_not_optimize(fast.size)
     }).gc('inner')
   })
 })
@@ -144,12 +146,12 @@ summary(() => {
   group('get 1 entry (hit)', () => {
     let i = 0
     bench('LRUCache.get', () => {
-      lru.get(keys[i++ & (CAPACITY - 1)])
+      do_not_optimize(lru.get(keys[i++ & (CAPACITY - 1)]))
     }).gc('inner')
 
     let j = 0
     bench('FastCache.get (intrusive)', () => {
-      fast.get(keys[j++ & (CAPACITY - 1)])
+      do_not_optimize(fast.get(keys[j++ & (CAPACITY - 1)]))
     }).gc('inner')
   })
 })
@@ -158,31 +160,12 @@ summary(() => {
   group('get 1 entry (miss)', () => {
     let i = 0
     bench('LRUCache.get (miss)', () => {
-      lru.get(extraKeys[i++ & (CAPACITY - 1)])
+      do_not_optimize(lru.get(extraKeys[i++ & (CAPACITY - 1)]))
     }).gc('inner')
 
     let j = 0
     bench('FastCache.get (miss)', () => {
-      fast.get(extraKeys[j++ & (CAPACITY - 1)])
-    }).gc('inner')
-  })
-})
-
-summary(() => {
-  group('has check (item not in cache)', () => {
-    const uncachedItems = new Array(CAPACITY)
-    for (let i = 0; i < CAPACITY; i++) {
-      uncachedItems[i] = new CacheableItem(i + CAPACITY)
-    }
-
-    let i = 0
-    bench('LRUCache.has (miss)', () => {
-      lru.has(extraKeys[i++ & (CAPACITY - 1)])
-    }).gc('inner')
-
-    let j = 0
-    bench('FastCache item[kCacheIdx] check', () => {
-      uncachedItems[j++ & (CAPACITY - 1)][kCacheIdx] !== -1
+      do_not_optimize(fast.get(extraKeys[j++ & (CAPACITY - 1)]))
     }).gc('inner')
   })
 })
@@ -194,8 +177,9 @@ summary(() => {
       const idx = i++ & (CAPACITY - 1)
       if (i % 5 === 0) {
         lru.set(keys[idx], items[idx])
+        do_not_optimize(lru.size)
       } else {
-        lru.get(keys[idx])
+        do_not_optimize(lru.get(keys[idx]))
       }
     }).gc('inner')
 
@@ -204,8 +188,9 @@ summary(() => {
       const idx = j++ & (CAPACITY - 1)
       if (j % 5 === 0) {
         fast.set(keys[idx], items[idx])
+        do_not_optimize(fast.size)
       } else {
-        fast.get(keys[idx])
+        do_not_optimize(fast.get(keys[idx]))
       }
     }).gc('inner')
   })
@@ -218,6 +203,7 @@ summary(() => {
       for (let i = 0; i < 256; i++) {
         c.set(keys[i & (CAPACITY - 1)], items[i & (CAPACITY - 1)])
       }
+      do_not_optimize(c.size)
     }).gc('inner')
 
     bench('FastCache eviction (intrusive)', () => {
@@ -225,6 +211,7 @@ summary(() => {
       for (let i = 0; i < 256; i++) {
         c.set(keys[i & (CAPACITY - 1)], items[i & (CAPACITY - 1)])
       }
+      do_not_optimize(c.size)
     }).gc('inner')
   })
 })
@@ -236,9 +223,11 @@ summary(() => {
       for (let i = 0; i < 1000; i++) {
         c.set(keys[i & (CAPACITY - 1)], i)
       }
+      let sum = 0
       for (let i = 0; i < 1000; i++) {
-        c.get(keys[i & (CAPACITY - 1)])
+        sum += c.get(keys[i & (CAPACITY - 1)])
       }
+      do_not_optimize(sum)
     }).gc('inner')
 
     bench('FastCache batch (intrusive)', () => {
@@ -246,9 +235,12 @@ summary(() => {
       for (let i = 0; i < 1000; i++) {
         c.set(keys[i & (CAPACITY - 1)], items[i & (CAPACITY - 1)])
       }
+      let sum = 0
       for (let i = 0; i < 1000; i++) {
-        c.get(keys[i & (CAPACITY - 1)])
+        const v = c.get(keys[i & (CAPACITY - 1)])
+        sum += v ? v.data : 0
       }
+      do_not_optimize(sum)
     }).gc('inner')
   })
 })

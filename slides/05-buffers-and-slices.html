@@ -1,0 +1,236 @@
+<!-- 10. BUFFERS ARE SLOW — USE SLICE -->
+<section id="buffers-and-slices">
+  <section class="section-header">
+    <h2>Buffers are Slow — Use Slice</h2>
+    <p><span class="npm-badge">@nxtedition/slice</span></p>
+  </section>
+
+  <section>
+    <h3>Why Buffer Is Expensive</h3>
+    <div class="columns">
+      <div class="col">
+        <h4 style="color:#ff5252">Buffer (allocates)</h4>
+        <pre><code class="language-javascript">// New ArrayBuffer + wrapper per call
+// Hot loop: 2 allocs per message
+for (const msg of messages) {
+  parseHeader(msg.subarray(0, 4))
+  parseBody(msg.subarray(4))
+}</code></pre>
+      </div>
+      <div class="col">
+        <h4 style="color:#4ec9b0">Slice (zero alloc)</h4>
+        <pre><code class="language-javascript">// Alloc from pool — O(1), no GC
+// Slice is a plain object — reuse it
+const slice = new Slice()
+// Hot loop: 0 allocs per message
+for (const msg of messages) {
+  slice.buffer = msg // just update fields
+  slice.byteOffset = msg.byteOffset;
+  slice.byteLength = 4
+  parseHeader(slice)
+  slice.byteOffset += 4;
+  slice.byteLength = msg.byteLength - 4
+  parseBody(slice)
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Slice — A Plain JS Object</h3>
+    <pre><code class="language-javascript">class Slice {
+  buffer      // Buffer — the backing Node.js Buffer
+  byteOffset  // number — start position within buffer
+  byteLength  // number — how many bytes this slice spans
+}</code></pre>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Buffer.subarray()</div>
+        <div style="color:#999;font-size:0.7em">Creates new Buffer object + new C++ wrapper every time. Performs extensive runtime checks and validations on every call. Cannot be reused or resized. GC must track each one.</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Slice</div>
+        <div style="color:#999;font-size:0.7em">Just 3 fields on a plain object. V8 hidden class optimized. Reuse the same instance — mutate the fields.</div>
+      </div>
+    </div>
+    <div class="insight">
+      Slice is not a new type — it's a convention: <code>{buffer, byteOffset, byteLength}</code>.<br>
+      Many Node.js APIs already accept <code>(buffer, offset, length)</code> — fs.read, fs.write, crypto, net.Socket.
+      Slice maps directly to these signatures. Zero overhead, zero allocations.
+    </div>
+  </section>
+
+  <section>
+    <h3>Buffer.subarray vs Slice</h3>
+    <div style="font-size:0.7em;color:#999;margin-bottom:8px;text-align:center">
+      Split 4 KB buffer into header (4 B) + body — per iteration
+    </div>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Method</th><th>Time</th><th>GC pressure</th><th>vs subarray</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Buffer.subarray()</td>
+          <td>~132 ns</td>
+          <td>~210 B</td>
+          <td>baseline</td>
+        </tr>
+        <tr>
+          <td>Slice (new)</td>
+          <td class="speedup">~3 ns</td>
+          <td>~2 B</td>
+          <td class="speedup">47x faster</td>
+        </tr>
+        <tr>
+          <td>Slice (mutate)</td>
+          <td class="speedup">~2 ns</td>
+          <td class="speedup">~0 B</td>
+          <td class="speedup">65x faster</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      Even allocating a fresh Slice each time is <strong>47x faster</strong> than Buffer.subarray().<br>
+      Mutating a reusable Slice is <strong>65x faster</strong> — zero allocations, zero GC pressure.
+    </div>
+  </section>
+
+  <section>
+    <h3>Buffer.allocUnsafe — The Internal Pool</h3>
+    <pre><code class="language-javascript">// Node.js pre-allocates a pool of Buffer.poolSize bytes (default 8 KB)
+// allocUnsafe uses this pool for sizes ≤ poolSize / 2 (4 KB)
+const buf = Buffer.allocUnsafe(256) // sliced from the pool — bump allocator</code></pre>
+    <!-- Pool visualization -->
+    <div class="diagram-box" style="padding:10px 16px;margin:10px 0">
+      <div style="text-align:center;color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:6px">8 KB Pool (bump allocator)</div>
+      <div style="display:flex;gap:2px;height:28px;border-radius:4px;overflow:hidden">
+        <div style="flex:2;background:#569cd6;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.7em">A</div>
+        <div style="flex:1;background:#555;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.65em">dead</div>
+        <div style="flex:3;background:#569cd6;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.7em">B</div>
+        <div style="flex:1;background:#555;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.65em">dead</div>
+        <div style="flex:2;background:#ff5252;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:0.7em">C</div>
+        <div style="flex:4;background:#333;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.7em">free →</div>
+      </div>
+      <div style="font-size:0.65em;color:#ff5252;margin-top:6px;text-align:center">
+        C is long-lived → entire 8 KB pool pinned in old gen (even though A and B are dead)
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">No free / no realloc</div>
+        <div style="color:#999;font-size:0.7em">Dead slices can't be returned to the pool. Bump pointer only moves forward. Must allocate new buffer + copy to resize.</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Fragmentation</div>
+        <div style="color:#999;font-size:0.7em">One long-lived buffer pins the entire pool in old gen. GC must trace the whole pool on every major collection — even if most slices are dead.</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">New object per call</div>
+        <div style="color:#999;font-size:0.7em">Every allocUnsafe still creates a new Buffer JS object + C++ wrapper. The pool only shares the underlying ArrayBuffer.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Pool Allocator</h3>
+    <pre><code class="language-javascript">import { Slice, PoolAllocator } from '@nxtedition/slice'
+
+// Slice is a plain JS object with {buffer, byteOffset, byteLength}
+// No new ArrayBuffer, no wrapper objects
+const slice = new Slice()
+// PoolAllocator: pre-allocates a contiguous memory pool
+const allocator = new PoolAllocator(128 * 1024 * 1024) // 128 MB pool
+// Allocate from pool — O(1), no GC
+const data = allocator.realloc(new Slice(), 256)
+// Resize in-place (if same power-of-2 bucket)
+allocator.realloc(data, 128) // May be free!
+// Free back to pool — O(1)
+allocator.realloc(data, 0)</code></pre>
+  </section>
+
+  <section>
+    <h3>Pool Allocator</h3>
+    <p style="font-size:0.7em;color:#ccc;margin-bottom:8px">Pre-allocates ONE big buffer, carves slices from it using power-of-2 bucketing</p>
+    <!-- Memory pool visualization -->
+    <div class="diagram-box" style="padding:12px 16px;margin-bottom:10px">
+      <div style="text-align:center;color:#e7ad52;font-weight:bold;font-size:0.95em;margin-bottom:8px">128 MB Pre-allocated Pool</div>
+      <div style="display:flex;gap:2px;height:32px;border-radius:4px;overflow:hidden;margin-bottom:4px">
+        <div style="flex:3;background:#c586c0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">64B</div>
+        <div style="flex:1;background:#4ec9b0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">8B</div>
+        <div style="flex:4;background:#d16969;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">256B</div>
+        <div style="flex:1;background:#555;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.65em">free</div>
+        <div style="flex:2;background:#e7ad52;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">32B</div>
+        <div style="flex:1;background:#4ec9b0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">8B</div>
+        <div style="flex:5;background:#333;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.8em">← offset</div>
+      </div>
+      <div style="font-size:0.6em;color:#999;text-align:center">Allocations placed sequentially. Freed slots reused by same-bucket allocs. Sizes interleaved — no ordering.</div>
+    </div>
+    <!-- Alloc/Free mechanics -->
+    <div style="display:flex;gap:12px;margin-bottom:10px">
+      <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.85em;margin-bottom:4px">Alloc — O(1)</div>
+        <div style="color:#bbb;font-size:0.75em">Pop from bucket free-stack</div>
+      </div>
+      <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.85em;margin-bottom:4px">Free — O(1)</div>
+        <div style="color:#bbb;font-size:0.75em">Push to bucket free-stack</div>
+      </div>
+      <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#e7ad52">
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.85em;margin-bottom:4px">Realloc in-place</div>
+        <div style="color:#bbb;font-size:0.75em">Same bucket? Just update length</div>
+      </div>
+    </div>
+    <!-- Why it's fast -->
+    <div style="display:flex;gap:10px;font-size:0.7em;margin-bottom:8px">
+      <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center"><strong style="color:#fff">ONE</strong> Buffer for entire pool<br><span style="color:#888">minimal GC tracking</span></div>
+      <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center">Slice = <strong style="color:#fff">plain JS object</strong><br><span style="color:#888">V8 hidden class optimized</span></div>
+      <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center"><strong style="color:#fff">No syscalls</strong><br><span style="color:#888">contiguous memory locality</span></div>
+    </div>
+    <!-- Trade-offs -->
+    <div style="display:flex;gap:10px;font-size:0.7em">
+      <div class="diagram-box" style="flex:1;padding:6px 10px;border-color:#e7ad52">
+        <span style="color:#e7ad52;font-weight:bold">Fragmentation</span>
+        <span style="color:#999">— power-of-2 bucketing wastes up to ~50% per slot (e.g. 33B → 64B bucket)</span>
+      </div>
+      <div class="diagram-box" style="flex:1;padding:6px 10px;border-color:#569cd6">
+        <span style="color:#569cd6;font-weight:bold">Fallback</span>
+        <span style="color:#999">— if pool is exhausted, falls back to <code style="color:#bbb">Buffer.alloc</code> transparently</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Benchmarks</h3>
+    <div style="font-size:0.7em;color:#999;margin-bottom:8px;text-align:center">
+      alloc 8 KB — per iteration
+    </div>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Method</th><th>Time</th><th>vs baseline</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Buffer.allocUnsafe</td>
+          <td>519 ns</td>
+          <td>baseline</td>
+        </tr>
+        <tr>
+          <td>PoolAllocator alloc</td>
+          <td class="speedup">144 ns</td>
+          <td class="speedup">3.6x faster</td>
+        </tr>
+        <tr>
+          <td>PoolAllocator realloc</td>
+          <td class="speedup">21 ns</td>
+          <td class="speedup">25x faster</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      Realloc in-place is <strong>25x faster</strong> than a fresh allocation — just updates the length field, no new objects, no GC.
+    </div>
+  </section>
+</section>

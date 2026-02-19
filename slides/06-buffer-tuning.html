@@ -1,0 +1,81 @@
+<!-- BUFFER & STREAM TUNING -->
+<section id="buffer-tuning">
+  <section class="section-header">
+    <h2>Buffer &amp; Stream Tuning</h2>
+    <p>Built-in knobs most people never touch</p>
+  </section>
+
+  <section>
+    <h3>Buffer.poolSize</h3>
+    <pre><code class="language-javascript">// Default: 8192 (8 KB)
+// allocUnsafe uses the pool for sizes ≤ poolSize / 2 (4 KB)
+// Sizes above that → direct allocation (slow path)
+
+Buffer.poolSize = 128 * 1024 // 128 KB
+// Now allocUnsafe uses the pool for sizes up to 64 KB</code></pre>
+    <div style="font-size:0.7em;color:#999;margin-bottom:8px;margin-top:12px;text-align:center">
+      Buffer.allocUnsafe — default poolSize (8 KB) vs 128 KB
+    </div>
+    <table class="benchmark">
+      <thead>
+        <tr><th>Size</th><th>poolSize = 8 KB</th><th>poolSize = 128 KB</th><th>Speedup</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 KB</td>
+          <td>237 ns</td>
+          <td>225 ns</td>
+          <td>1.1x</td>
+        </tr>
+        <tr>
+          <td>8 KB</td>
+          <td>428 ns</td>
+          <td>285 ns</td>
+          <td class="speedup">1.5x</td>
+        </tr>
+        <tr>
+          <td>16 KB</td>
+          <td>448 ns</td>
+          <td>320 ns</td>
+          <td class="speedup">1.4x</td>
+        </tr>
+        <tr>
+          <td>64 KB</td>
+          <td>1.04 µs</td>
+          <td>1.08 µs</td>
+          <td>~1x</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      8–16 KB allocations skip the pool by default and hit the slow path.
+      <code>Buffer.poolSize = 128 * 1024</code> fixes this — <strong>1.5x faster</strong> for common network buffer sizes.
+    </div>
+  </section>
+
+  <section>
+    <h3>stream.setDefaultHighWaterMark</h3>
+    <pre><code class="language-javascript">import { setDefaultHighWaterMark } from 'node:stream'
+
+// Default: 16 KB for readable, 16 KB for writable
+// Controls how much data streams buffer before applying backpressure
+
+setDefaultHighWaterMark(false, 128 * 1024)  // writable: 128 KB
+setDefaultHighWaterMark(true, 128 * 1024)   // readable: 128 KB</code></pre>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Larger highWaterMark</div>
+        <div style="color:#999;font-size:0.7em">Fewer backpressure stalls, better throughput for bulk I/O. Less overhead per chunk on network sockets and file streams.</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">Trade-off: memory</div>
+        <div style="color:#999;font-size:0.7em">Each stream buffers more data. With thousands of concurrent streams, memory adds up. Size to your concurrency.</div>
+      </div>
+    </div>
+    <div class="insight">
+      Both <code>Buffer.poolSize</code> and <code>highWaterMark</code> default to small values for memory safety.<br>
+      On a server handling large payloads, increasing both to <strong>128 KB</strong> is usually a free performance win.
+    </div>
+  </section>
+</section>

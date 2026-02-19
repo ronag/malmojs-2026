@@ -109,15 +109,14 @@
       <thead><tr><th>Operation</th><th>Intrusive Random-2</th><th>lru-cache</th><th>Speedup</th></tr></thead>
       <tbody>
         <tr><td>get (hit)</td><td>14.6 ns</td><td>23.8 ns</td><td><strong>1.6x</strong></td></tr>
-        <tr><td>has check (miss)</td><td>1.6 ns</td><td>13.5 ns</td><td><strong>8.7x</strong></td></tr>
-        <tr><td>mixed 80/20</td><td>23.3 ns</td><td>34.2 ns</td><td><strong>1.5x</strong></td></tr>
+        <tr><td>set (warm)</td><td>8.1 ns</td><td>87 ns</td><td><strong>10.8x</strong></td></tr>
+        <tr><td>mixed get/set 80/20</td><td>23.3 ns</td><td>34.2 ns</td><td><strong>1.5x</strong></td></tr>
         <tr><td>eviction (256 ops)</td><td>646 ns</td><td>33 µs</td><td><strong>51x</strong></td></tr>
         <tr><td>batch 1000</td><td>6.9 µs</td><td>101 µs</td><td><strong>14.7x</strong></td></tr>
         <tr><td>GC pressure (1000 ops)</td><td>~0 B</td><td>48.2 KB</td><td class="speedup">zero alloc</td></tr>
       </tbody>
     </table>
     <div class="insight">
-      "Is it cached?" — just check item[kCacheIdx] !== -1: 1.6ns, no Map lookup.<br>
       Intrusive bookkeeping + monotonic tick counter + swap-remove = zero-alloc cache.
     </div>
   </section>

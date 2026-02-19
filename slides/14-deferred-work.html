@@ -1,0 +1,68 @@
+<!-- DEFERRED WORK -->
+<section id="deferred-work">
+  <section class="section-header">
+    <h2>Deferred Work</h2>
+    <p>Do less now, do more later</p>
+    <p><span class="npm-badge">@nxtedition/scheduler</span> <span class="npm-badge">@nxtedition/yield</span></p>
+  </section>
+
+  <section>
+    <h3>Do Work, but Later</h3>
+    <div class="columns">
+      <div class="col">
+        <h4 style="color:#ff5252">O(1) inline — Set</h4>
+        <pre><code class="language-javascript">// "Slow" Set with hashing + GC overhead
+const requests = new Set()
+
+function onRequest(req) {
+  // O(1) but expensive - hash + alloc + GC
+  requests.add(req)
+  req.on('close', () => {
+    requests.delete(req)
+  })
+  // Every request pays this cost
+}</code></pre>
+      </div>
+      <div class="col">
+        <h4 style="color:#4ec9b0">O(n) deferred — Array</h4>
+        <pre><code class="language-javascript">// Fast Array — zero overhead on hot path
+const requests = []
+const cleanupTimer = setTimeout(() => {
+  // O(n) sweep at lowest priority
+  scheduler.run(() => {
+    requests = requests.filter(req => !req.closed)
+    cleanupTimer.refresh() // reschedule next cleanup
+  }, 'lowest')
+}, 30000) // every 30s
+
+function onRequest(req) {
+  // O(1) but fast — just push to array
+  requests.push(req)
+}
+</code></pre>
+      </div>
+    </div>
+    <div class="insight">
+      Defer expensive work to a later time when it won't impact latency of hot requests.<br>
+      O(n) cleanup at <code>'lowest'</code> priority beats O(1) overhead on every request.
+    </div>
+  </section>
+
+  <section>
+    <h3>Off-Peak Scheduling</h3>
+    <pre><code class="language-javascript">cron('02:00:00', () => {
+  compactCaches()
+  flushLogs()
+  global.gc() // explicit GC when nobody's waiting (--expose-gc)
+})</code></pre>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Predictable latency</div>
+        <div style="color:#999;font-size:0.7em">GC and cleanup happen when you decide, not when V8 decides mid-request</div>
+      </div>
+    </div>
+    <div class="insight">
+      You can't avoid expensive work — but you can <strong>choose when it happens</strong>.<br>
+    </div>
+  </section>
+</section>

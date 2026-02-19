@@ -1,5 +1,5 @@
 // Benchmark: Atomics overhead — plain vs atomic operations
-import { run, bench, group, summary } from 'mitata'
+import { run, bench, group, summary, do_not_optimize } from 'mitata'
 
 const sab = new SharedArrayBuffer(256)
 const i32 = new Int32Array(sab)
@@ -10,11 +10,11 @@ const u8 = new Uint8Array(sab)
 summary(() => {
   group('read i32[0]', () => {
     bench('plain read', () => {
-      return i32[0]
+      do_not_optimize(i32[0])
     }).gc('inner')
 
     bench('Atomics.load', () => {
-      return Atomics.load(i32, 0)
+      do_not_optimize(Atomics.load(i32, 0))
     }).gc('inner')
   })
 })
@@ -37,16 +37,16 @@ summary(() => {
 
 summary(() => {
   group('read + write i32[0]', () => {
-    let i = 0
     bench('plain read + write', () => {
       const v = i32[0]
       i32[0] = v + 1
+      do_not_optimize(v)
     }).gc('inner')
 
-    let j = 0
     bench('Atomics.load + Atomics.store', () => {
       const v = Atomics.load(i32, 0)
       Atomics.store(i32, 0, v + 1)
+      do_not_optimize(v)
     }).gc('inner')
   })
 })
@@ -59,12 +59,14 @@ summary(() => {
       for (let i = 0; i < 100; i++) {
         i32[0] = i
       }
+      do_not_optimize(i32[0])
     }).gc('inner')
 
     bench('Atomics.store × 100', () => {
       for (let i = 0; i < 100; i++) {
         Atomics.store(i32, 0, i)
       }
+      do_not_optimize(i32[0])
     }).gc('inner')
 
     bench('plain write × 100, Atomics.store × 1 (batched)', () => {
@@ -72,6 +74,7 @@ summary(() => {
         i32[0] = i
       }
       Atomics.store(i32, 0, i32[0])
+      do_not_optimize(i32[0])
     }).gc('inner')
   })
 })
@@ -81,19 +84,19 @@ summary(() => {
 summary(() => {
   group('atomic exchange operations', () => {
     bench('Atomics.store', () => {
-      Atomics.store(i32, 0, 42)
+      do_not_optimize(Atomics.store(i32, 0, 42))
     }).gc('inner')
 
     bench('Atomics.exchange', () => {
-      Atomics.exchange(i32, 0, 42)
+      do_not_optimize(Atomics.exchange(i32, 0, 42))
     }).gc('inner')
 
     bench('Atomics.compareExchange', () => {
-      Atomics.compareExchange(i32, 0, 42, 43)
+      do_not_optimize(Atomics.compareExchange(i32, 0, 42, 43))
     }).gc('inner')
 
     bench('Atomics.add', () => {
-      Atomics.add(i32, 0, 1)
+      do_not_optimize(Atomics.add(i32, 0, 1))
     }).gc('inner')
   })
 })
@@ -140,12 +143,12 @@ summary(() => {
 summary(() => {
   group('Atomics.notify (no waiters)', () => {
     bench('Atomics.notify(0 waiters)', () => {
-      Atomics.notify(i32, 0, 1)
+      do_not_optimize(Atomics.notify(i32, 0, 1))
     }).gc('inner')
 
     bench('Atomics.store + notify', () => {
       Atomics.store(i32, 0, 42)
-      Atomics.notify(i32, 0, 1)
+      do_not_optimize(Atomics.notify(i32, 0, 1))
     }).gc('inner')
   })
 })
