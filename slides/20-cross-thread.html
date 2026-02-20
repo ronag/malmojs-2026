@@ -71,7 +71,7 @@ const shared = alloc(4 * 1024 * 1024) // 4 MB ring buffer
 
 // Writer thread
 const w = writer(shared)
-w.writeSync(data.length, ({ buffer, byteOffset }) => {
+w.writeSync(data.byteLength, ({ buffer, byteOffset }) => {
   data.copy(buffer, byteOffset)
   return byteOffset + data.byteLength
 })
