@@ -139,10 +139,6 @@
   border-bottom: 1px solid #444;
 }
 
-.reveal table.benchmark tr:hover td {
-  background: rgba(231, 173, 82, 0.1);
-}
-
 .reveal table.benchmark .speedup {
   color: #4ec9b0;
   font-weight: bold;

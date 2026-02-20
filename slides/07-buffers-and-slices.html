@@ -25,11 +25,12 @@ const slice = new Slice()
 // Hot loop: 0 allocs per message
 for (const msg of messages) {
   slice.buffer = msg // just update fields
-  slice.byteOffset = msg.byteOffset;
+
+  slice.byteOffset = msg.byteOffset
   slice.byteLength = 4
   parseHeader(slice)
-  slice.byteOffset += 4;
-  slice.byteLength = msg.byteLength - 4
+  slice.byteOffset += 4
+  slice.byteLength -= 4
   parseBody(slice)
 }</code></pre>
       </div>
@@ -135,24 +136,7 @@ const buf = Buffer.allocUnsafe(256) // sliced from the pool — bump allocator</
 
   <section>
     <h3>Pool Allocator</h3>
-    <pre><code class="language-javascript">import { Slice, PoolAllocator } from '@nxtedition/slice'
-
-// Slice is a plain JS object with {buffer, byteOffset, byteLength}
-// No new ArrayBuffer, no wrapper objects
-const slice = new Slice()
-// PoolAllocator: pre-allocates a contiguous memory pool
-const allocator = new PoolAllocator(128 * 1024 * 1024) // 128 MB pool
-// Allocate from pool — O(1), no GC
-const data = allocator.realloc(new Slice(), 256)
-// Resize in-place (if same power-of-2 bucket)
-allocator.realloc(data, 128) // May be free!
-// Free back to pool — O(1)
-allocator.realloc(data, 0)</code></pre>
-  </section>
-
-  <section>
-    <h3>Pool Allocator</h3>
-    <p style="font-size:0.7em;color:#ccc;margin-bottom:8px">Pre-allocates ONE big buffer, carves slices from it using power-of-2 bucketing</p>
+    <p style="font-size:0.7em;color:#ccc;margin-bottom:8px">Pre-allocates ONE big buffer, carves slices from it using power-of-2 bucketing — <strong style="color:#4ec9b0">freed slots are reused</strong>, never handed to GC</p>
     <!-- Memory pool visualization -->
     <div class="diagram-box" style="padding:12px 16px;margin-bottom:10px">
       <div style="text-align:center;color:#e7ad52;font-weight:bold;font-size:0.95em;margin-bottom:8px">128 MB Pre-allocated Pool</div>
@@ -160,18 +144,18 @@ allocator.realloc(data, 0)</code></pre>
         <div style="flex:3;background:#c586c0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">64B</div>
         <div style="flex:1;background:#4ec9b0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">8B</div>
         <div style="flex:4;background:#d16969;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">256B</div>
-        <div style="flex:1;background:#555;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.65em">free</div>
+        <div style="flex:1;background:#555;border:2px dashed #4ec9b0;display:flex;align-items:center;justify-content:center;color:#4ec9b0;font-size:0.65em;font-weight:bold">free</div>
         <div style="flex:2;background:#e7ad52;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">32B</div>
         <div style="flex:1;background:#4ec9b0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.8em">8B</div>
         <div style="flex:5;background:#333;display:flex;align-items:center;justify-content:center;color:#888;font-size:0.8em">← offset</div>
       </div>
-      <div style="font-size:0.6em;color:#999;text-align:center">Allocations placed sequentially. Freed slots reused by same-bucket allocs. Sizes interleaved — no ordering.</div>
+      <div style="font-size:0.6em;color:#999;text-align:center">Freed slots (<span style="color:#4ec9b0">free</span>) returned to bucket free-stack and handed out on the next alloc — no new memory, no GC.</div>
     </div>
     <!-- Alloc/Free mechanics -->
     <div style="display:flex;gap:12px;margin-bottom:10px">
       <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.85em;margin-bottom:4px">Alloc — O(1)</div>
-        <div style="color:#bbb;font-size:0.75em">Pop from bucket free-stack</div>
+        <div style="color:#bbb;font-size:0.75em">Pop from bucket free-stack — <strong style="color:#4ec9b0">reuses</strong> a freed slot, no new memory</div>
       </div>
       <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#ff5252">
         <div style="color:#ff5252;font-weight:bold;font-size:0.85em;margin-bottom:4px">Free — O(1)</div>
@@ -185,7 +169,7 @@ allocator.realloc(data, 0)</code></pre>
     <!-- Why it's fast -->
     <div style="display:flex;gap:10px;font-size:0.7em;margin-bottom:8px">
       <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center"><strong style="color:#fff">ONE</strong> Buffer for entire pool<br><span style="color:#888">minimal GC tracking</span></div>
-      <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center">Slice = <strong style="color:#fff">plain JS object</strong><br><span style="color:#888">V8 hidden class optimized</span></div>
+      <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center">Slice = <strong style="color:#fff">plain JS object</strong><br><span style="color:#888">mutate &amp; <strong style="color:#4ec9b0">reuse</strong> — never discard</span></div>
       <div style="flex:1;color:#ccc;background:#1a1a1a;border-radius:4px;padding:6px 10px;text-align:center"><strong style="color:#fff">No syscalls</strong><br><span style="color:#888">contiguous memory locality</span></div>
     </div>
     <!-- Trade-offs -->
@@ -199,6 +183,23 @@ allocator.realloc(data, 0)</code></pre>
         <span style="color:#999">— if pool is exhausted, falls back to <code style="color:#bbb">Buffer.alloc</code> transparently</span>
       </div>
     </div>
+  </section>
+
+  <section>
+    <h3>Pool Allocator</h3>
+    <pre><code class="language-javascript">import { Slice, PoolAllocator } from '@nxtedition/slice'
+
+// Slice is a plain JS object with {buffer, byteOffset, byteLength}
+// No new ArrayBuffer, no wrapper objects
+const slice = new Slice()
+// PoolAllocator: pre-allocates a contiguous memory pool
+const allocator = new PoolAllocator(128 * 1024 * 1024) // 128 MB pool
+// Allocate from pool — O(1), no GC
+const data = allocator.realloc(new Slice(), 256)
+// Resize in-place (if same power-of-2 bucket)
+allocator.realloc(data, 128) // May be free!
+// Free back to pool — O(1)
+allocator.realloc(data, 0)</code></pre>
   </section>
 
   <section>
@@ -231,6 +232,9 @@ allocator.realloc(data, 0)</code></pre>
     <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
     <div class="insight">
       Realloc in-place is <strong>25x faster</strong> than a fresh allocation — just updates the length field, no new objects, no GC.
+    </div>
+    <div class="insight" style="border-color:#e7ad52;color:#e7ad52;margin-top:8px;font-size:0.75em">
+      More sophisticated allocators (e.g. buddy allocator) add bookkeeping overhead that quickly erodes the advantage — simple power-of-2 bucketing stays ahead of <code>Buffer.allocUnsafe</code> precisely because it does so little.
     </div>
   </section>
 </section>

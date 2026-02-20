@@ -135,15 +135,7 @@ const kReading           = 1 << 11
 const kNeedReadable      = 1 << 13
 const kReadableListening = 1 << 15
 const kFlowing           = 1 << 24
-const kDataListening     = 1 << 27
-
-// makeBitMapDescriptor — exposes each bit as a JS boolean property
-function makeBitMapDescriptor(bit) {
-  return {
-    get() { return (this[kState] & bit) !== 0 },
-    set(v) { if (v) this[kState] |= bit; else this[kState] &= ~bit },
-  }
-}</code></pre>
+const kDataListening     = 1 << 27</code></pre>
     <div class="insight">
       28 stream flags — Readable + Writable + shared — packed into a single <code>kState</code> integer per stream instance.
     </div>

@@ -6,7 +6,7 @@
   </section>
 
   <section>
-    <h3>Why MessagePort Is Slow</h3>
+    <h3>Why MessagePort is Slow</h3>
     <pre><code class="language-javascript">// MessagePort uses structured clone (serialization)
 parentPort.postMessage({ type: 'log', data: largeObject })
 // 1. Serialize (deep copy) → 2. Copy across boundary
