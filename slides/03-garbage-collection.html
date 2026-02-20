@@ -210,4 +210,44 @@ function release(obj) {
       for pooled objects AND the allocation cost for the overflow. Size pools to actual reuse.
     </div>
   </section>
+
+  <section>
+    <h3>Essential GC Flags</h3>
+    <pre><code class="language-bash"># Increase old generation heap size (default: ~1.5-2 GB)
+node --max-old-space-size=4096 server.js
+
+# Increase young generation (semi-space) size
+# Default: 16 MB per semi-space → try 64 MB for high-alloc workloads
+node --max-semi-space-size=64 server.js
+
+# Expose GC for manual triggering (debugging only)
+node --expose-gc server.js
+
+# Track GC events
+node --trace-gc server.js
+# Output: [12345:0x...] 42 ms: Scavenge 12.3 (20.4) -> 6.1 (20.4) MB, 1.2 / 0.0 ms ...
+
+# Detailed GC stats
+node --trace-gc-verbose server.js</code></pre>
+  </section>
+
+  <section>
+    <h3>Semi-Space Size Tuning</h3>
+    <div style="display:flex;gap:12px;margin-bottom:14px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 18px;border-left:3px solid #569cd6">
+        <div style="color:#569cd6;font-weight:bold;font-size:0.82em;margin-bottom:6px">Small <span style="color:#555;font-weight:normal">(default 16 MB)</span></div>
+        <div style="color:#999;font-size:0.72em">Short pauses, but objects promote faster → more major GC</div>
+        <div style="margin-top:8px;font-size:0.68em;color:#666">Best for: <strong style="color:#ccc">latency-sensitive</strong> workloads</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:14px 18px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.82em;margin-bottom:6px">Large <span style="color:#555;font-weight:normal">(64–128 MB)</span></div>
+        <div style="color:#999;font-size:0.72em">Objects die before promotion → less old gen pressure, longer minor pauses</div>
+        <div style="margin-top:8px;font-size:0.68em;color:#666">Best for: <strong style="color:#ccc">high-allocation</strong> workloads</div>
+      </div>
+    </div>
+    <pre style="margin:0 0 12px"><code class="language-bash">node --max-semi-space-size=64 server.js  # good starting point</code></pre>
+    <div class="insight">
+      Often the single biggest GC win. Try it before reaching for anything else.
+    </div>
+  </section>
 </section>

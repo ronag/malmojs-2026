@@ -132,6 +132,9 @@ const buf = Buffer.allocUnsafe(256) // sliced from the pool — bump allocator</
         <div style="color:#999;font-size:0.7em">Every allocUnsafe still creates a new Buffer JS object + C++ wrapper. The pool only shares the underlying ArrayBuffer.</div>
       </div>
     </div>
+    <div class="warning" style="margin-top:10px">
+      Use <code>Buffer.allocUnsafeSlow()</code> for long-lived buffers — it allocates outside the pool, so it won't pin an entire 8 KB pool slab in old gen.
+    </div>
   </section>
 
   <section>
