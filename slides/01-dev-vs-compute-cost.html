@@ -74,4 +74,46 @@
       Shared libraries are the sweet spot — you optimize once, everyone benefits.
     </aside>
   </section>
+
+  <section>
+    <h3>A Disclaimer</h3>
+    <div class="diagram-box" style="padding:20px 28px;border-color:#e7ad52;font-size:0.88em;color:#ccc;line-height:1.7;max-width:860px;margin:0 auto 18px">
+      Most of the time, <strong style="color:#fff">performance is not an issue.</strong>
+      Much of what this presentation covers is <em>rarely relevant</em> to day-to-day work.
+    </div>
+    <p style="font-size:0.78em;color:#888;text-align:center;margin:0 0 8px">But when it is…</p>
+  </section>
+
+  <section>
+    <h3>When It Matters, It Really Matters</h3>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:880px;margin:0 auto">
+      <div class="diagram-box" style="padding:16px 22px;border-color:#4ec9b0;font-size:0.82em;color:#ccc;line-height:1.6">
+        The difference between a system that <strong style="color:#4ec9b0">works</strong>
+        and one that <strong style="color:#f48771">doesn't</strong>.
+      </div>
+      <div class="diagram-box" style="padding:16px 22px;border-color:#569cd6;font-size:0.82em;color:#ccc;line-height:1.6">
+        The difference between running a workload on <strong style="color:#fff">a single node</strong> vs.
+        a massive, costly re-architecture into a
+        <strong style="color:#569cd6">distributed multi-node system</strong> —
+        with partial failures, consistency problems, and all the bugs and operational complexity that brings.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Complexity Is the Enemy</h3>
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:880px;margin:0 auto">
+      <div class="diagram-box" style="padding:16px 22px;border-color:#888;font-size:0.82em;color:#999;line-height:1.8">
+        Both <strong style="color:#e7ad52">optimized code</strong> and <strong style="color:#569cd6">distributed systems</strong>
+        are harder to <strong style="color:#ccc">reason about</strong>,
+        harder to <strong style="color:#ccc">debug</strong>,
+        and harder to <strong style="color:#ccc">maintain</strong>.
+        Choose the lesser evil — and measure before you choose.
+      </div>
+      <div style="text-align:center;margin-top:8px;font-style:italic;font-size:0.88em;color:#aaa;line-height:1.7">
+        "Simplicity is a necessary precondition for reliability."
+        <div style="margin-top:6px;font-style:normal;font-size:0.82em;color:#666">— Edsger W. Dijkstra</div>
+      </div>
+    </div>
+  </section>
 </section>

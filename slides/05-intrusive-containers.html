@@ -117,7 +117,7 @@ function remove(arr, item) {
     <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
     <div class="insight">
       Intrusive swap-remove is O(1) — ~5ns regardless of container size.
-      At N=10,000: array splice is <strong>350x slower</strong>, linked list is <strong>5,800x slower</strong> (Map + GC).
+      At N=10,000: array splice is <strong>350x slower</strong>, linked list is <strong>5,800x slower</strong> (node allocation + pointer chasing + GC).
     </div>
   </section>
 
