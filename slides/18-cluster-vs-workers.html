@@ -44,7 +44,7 @@ createServer(handler).listen({ port: 3000, reusePort: true })</code></pre>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">eBPF steering</div>
-        <div style="color:#999;font-size:0.7em">Route by CPU affinity, skip busy workers</div>
+        <div style="color:#999;font-size:0.7em"><code style="color:#ccc">SO_REUSEPORT</code> exposes a BPF socket hook — attach an eBPF program to steer connections by CPU affinity, session hash, or worker load, entirely in kernel space</div>
       </div>
     </div>
   </section>
@@ -62,6 +62,7 @@ createServer(handler).listen({ port: 3000, reusePort: true })</code></pre>
         <tr><td>Communication</td><td>JSON serialization</td><td>Atomics / SharedArrayBuffer</td></tr>
         <tr><td>Memory per worker</td><td>Full V8 heap</td><td>Shared code + smaller heap</td></tr>
         <tr><td>Primary bottleneck</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Request steering</td><td>None</td><td>eBPF (BPF socket hook)</td></tr>
       </tbody>
     </table>
     <div class="insight">

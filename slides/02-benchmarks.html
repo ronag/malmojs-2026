@@ -24,6 +24,10 @@
         <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Deoptimization</div>
         <div style="color:#999;font-size:0.7em">Passing different object shapes across benchmark iterations triggers deopt. You measure the deopt overhead, not the code.</div>
       </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
+        <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Garbage collection</div>
+        <div style="color:#999;font-size:0.7em">GC can pause mid-run — one iteration 50 ns, the next 5,000 ns. Many frameworks suppress GC between samples, making allocation look free.</div>
+      </div>
     </div>
   </section>
 
@@ -104,12 +108,6 @@ node.next.prev = node.prev</code></pre>
       average looks fine, P99 is a disaster.<br>
       Many frameworks disable GC between samples for stable numbers — but that hides the real cost.
     </p>
-    <pre><code class="language-javascript">bench('with gc pressure', function* (state) {
-  yield.gc('inner') // run GC inside the measured loop
-  while (state.count--) {
-    do_not_optimize(new Array(100))
-  }
-})</code></pre>
     <div class="warning">
       Benchmarks that disable GC between runs show <em>best-case allocation cost</em>,
       not the real cost. Always measure with realistic GC pressure.

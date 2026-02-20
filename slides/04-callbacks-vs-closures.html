@@ -96,10 +96,9 @@ queue.push(() => handler(ctx))</code></pre>
   drain() {
     while (this.head < this.tail) {
       const fn = this.fns[this.head]
-      const opaque = this.fns[this.head + 1]
-      this.fns[this.head] = undefined
-      this.fns[this.head + 1] = undefined
-      this.head += 2
+      this.fns[this.head++] = undefined
+      const opaque = this.fns[this.head]
+      this.fns[this.head++] = undefined
       fn(opaque)
     }
     this.head = this.tail = 0

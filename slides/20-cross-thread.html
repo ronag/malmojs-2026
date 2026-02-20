@@ -71,17 +71,17 @@ const shared = alloc(4 * 1024 * 1024) // 4 MB ring buffer
 
 // Writer thread
 const w = writer(shared)
-w.writeSync(data.length, ({ buffer, offset }) => {
-  data.copy(buffer, offset)
-  return offset + data.length
+w.writeSync(data.length, ({ buffer, byteOffset }) => {
+  data.copy(buffer, byteOffset)
+  return byteOffset + data.byteLength
 })
 
 // Reader thread
 const r = reader(shared)
-r.readSome(({ buffer, offset, length }) => {
+r.readSome(({ buffer, byteOffset, byteLength }) => {
   // Zero-copy read — directly access shared memory
   // No serialization, no deserialization, no allocation
-  processData(buffer, offset, length)
+  processData(buffer, byteOffset, byteLength)
 })</code></pre>
   </section>
 

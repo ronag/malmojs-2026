@@ -33,7 +33,7 @@ const kFlowing     = 1 << 4
 const kPaused      = 1 << 5
 const kDestroyed   = 1 << 6
 
-let state = 0              // one 32-bit integer
+let state = 0              // one 31-bit integer
 state |= kReading          // set
 state &= ~kReading         // clear
 state & kReading           // test</code></pre>

@@ -23,10 +23,9 @@ const value = await resolve(key)  // Promise allocated even for cache hit</code>
     <pre><code class="language-javascript">// Return a discriminated result instead
 function resolve(key) {
   const cached = cache.get(key)
-  if (cached) {
-    return { async: false, value: cached }
-  }
-  return { async: true, value: fetchRemote(key) }
+  return cached
+    ? { async: false, value: cached }
+    : { async: true,  value: fetchRemote(key) }
 }
 
 // Caller can fast-path the sync case:
