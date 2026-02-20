@@ -68,23 +68,26 @@ clearTimeout(fast)</code></pre>
   <section>
     <h3>How It Works Internally</h3>
     <pre><code class="language-javascript">// ONE shared timer fires every 500ms
-let fastNow = 0; const fastTimers = []
-
+let fastNow = 0; let fastIdx = 0; const fastTimers = []
 function onTimeout() {
   fastNow += 500
-  let idx = 0
-  while (idx < fastTimers.length) {
+  while (fastIdx < fastTimers.length) {
     const timer = fastTimers[idx]
     if (timer.state > 0 && fastNow >= timer.state) {
       timer.state = -1                    // mark as fired
       timer.callback(timer.opaque)        // opaque, not closure!
     }
     if (timer.state === -1) {
-      fastTimers[idx] = fastTimers.pop()  // swap-remove O(1)
+      fastTimers[fastIdx] = fastTimers.pop()  // swap-remove O(1)
     } else {
-      idx++
+      fastIdx++
+    }
+    if ((fastIdx & 0xff) === 0 && shouldYield()) {
+      doYield(onTimeout) // yield to event loop every 256 timers. More about this later...
+      return
     }
   }
+  fastIndex = 0
 }</code></pre>
   </section>
 

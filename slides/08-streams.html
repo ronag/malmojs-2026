@@ -1,0 +1,31 @@
+<!-- STREAMS -->
+<section id="streams">
+  <section class="section-header">
+    <h2>Streams</h2>
+    <p>Backpressure and buffer tuning</p>
+  </section>
+
+  <section>
+    <h3>stream.setDefaultHighWaterMark</h3>
+    <pre><code class="language-javascript">import { setDefaultHighWaterMark } from 'node:stream'
+
+// Default: 16 KB for readable, 16 KB for writable
+// Controls how much data streams buffer before applying backpressure
+
+setDefaultHighWaterMark(false, 128 * 1024)  // writable: 128 KB</code></pre>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
+        <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Larger highWaterMark</div>
+        <div style="color:#999;font-size:0.7em">Fewer backpressure stalls, better throughput for bulk I/O. Less overhead per chunk on network sockets and file streams.</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">Trade-off: memory</div>
+        <div style="color:#999;font-size:0.7em">Each stream buffers more data. With thousands of concurrent streams, memory adds up. Size to your concurrency.</div>
+      </div>
+    </div>
+    <div class="insight">
+      Defaults are conservative for memory safety.
+      On a server handling large payloads, increasing to <strong>128 KB</strong> is usually a free throughput win.
+    </div>
+  </section>
+</section>
