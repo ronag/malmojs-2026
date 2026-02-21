@@ -1,8 +1,46 @@
-<!-- 7. FAST TIMERS -->
+<!-- 7. FAST TIME & TIMERS -->
 <section id="fast-timers">
   <section class="section-header">
-    <h2>Fast Timers</h2>
+    <h2>Fast Time &amp; Timers</h2>
     <p><span class="npm-badge">@nxtedition/timers</span></p>
+  </section>
+
+  <section>
+    <h3>Fast Time: Cached Timestamps</h3>
+    <pre><code class="language-javascript">let fastNow = Date.now()
+let fastISO = new Date().toISOString()
+
+setInterval(() => {
+  fastNow = Date.now()
+  fastISO = new Date().toISOString()
+}, 1e3).unref()
+
+// Hot path: use fastNow/fastISO instead of Date.now()
+// 1-second resolution is fine for logging, HTTP headers, timeouts, etc.</code></pre>
+    <table class="benchmark" style="margin-top:10px">
+      <thead>
+        <tr><th>Operation</th><th>Native</th><th>Cached</th><th>Speedup</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Date.now()</td>
+          <td>34 ns</td>
+          <td>0.5 ns</td>
+          <td class="speedup">64x</td>
+        </tr>
+        <tr>
+          <td>new Date().toISOString()</td>
+          <td>625 ns</td>
+          <td>0.5 ns</td>
+          <td class="speedup">1,239x</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
+    <div class="insight">
+      On hot paths, reading a cached variable is a plain memory load -
+      no syscall, no allocation, no string formatting.
+    </div>
   </section>
 
   <section>

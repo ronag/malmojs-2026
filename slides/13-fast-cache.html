@@ -7,13 +7,16 @@
 
   <section>
     <h3>The Problems with LRU</h3>
+    <p style="font-size:0.72em;color:#999;margin-bottom:10px">
+      Typical LRU: <code style="color:#e7ad52">Map</code> for O(1) lookup + <strong>doubly-linked list</strong> for eviction order.
+    </p>
     <ul class="spaced" style="font-size:0.75em">
       <li>
         <strong style="color:#ff5252">Cache pollution</strong>: a single access promotes an item to head of the LRU list.
         One-time reads and rare keys push out hot data.
       </li>
       <li>
-        <strong style="color:#ff5252">Implementation overhead</strong>: doubly-linked list: every entry = <code>{key, value, prev, next}</code>.
+        <strong style="color:#ff5252">Implementation overhead</strong>: every entry = <code>{key, value, prev, next}</code> wrapper node.
         Every access = unlink + relink at head. Pointer chasing through scattered heap memory = CPU cache unfriendly. Every entry = wrapper allocation → GC pressure.
       </li>
       <li>
@@ -90,7 +93,6 @@
       const idx = this.#arr[i][kCacheTick] <= this.#arr[j][kCacheTick] ? i : j
       const evicted = this.#arr[idx]
       this.#map.delete(evicted[kCacheKey])
-      swapRemove(this.#arr, idx)
       const last = this.#arr.pop() // swap-remove
       if (last !== evicted) {
         this.#arr[idx] = last; last[kCacheIdx] = idx
