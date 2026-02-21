@@ -18,6 +18,11 @@ async function asyncCall(a, b) {
   return a + b
 }
 
+// --- callback + queueMicrotask (deferred but no Promise) ---
+function callbackMicrotaskCall(a, b, cb) {
+  queueMicrotask(() => cb(a + b))
+}
+
 // --- new Promise wrapping sync work ---
 function promiseCall(a, b) {
   return new Promise(resolve => resolve(a + b))
@@ -35,6 +40,10 @@ summary(() => {
 
     bench('async/await', async () => {
       sink = await asyncCall(sink, 1)
+    }).gc('inner')
+
+    bench('callback + queueMicrotask', () => {
+      callbackMicrotaskCall(sink, 1, (v) => { sink = v })
     }).gc('inner')
 
     bench('new Promise(resolve => ...)', async () => {
