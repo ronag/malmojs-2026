@@ -71,10 +71,9 @@ const shared = alloc(4 * 1024 * 1024) // 4 MB ring buffer
 
 // Writer thread
 const w = writer(shared)
-w.writeSync(data.byteLength, ({ buffer, byteOffset }) => {
-  data.copy(buffer, byteOffset)
-  return byteOffset + data.byteLength
-})
+w.writeSync(buf.byteLength, ({ buffer, byteOffset }) =>
+  byteOffset + buf.copy(buffer, byteOffset)
+)
 
 // Reader thread
 const r = reader(shared)
@@ -83,25 +82,6 @@ r.readSome(({ buffer, byteOffset, byteLength }) => {
   // No serialization, no deserialization, no allocation
   processData(buffer, byteOffset, byteLength)
 })</code></pre>
-  </section>
-
-  <section>
-    <h3>Key Optimizations</h3>
-    <pre><code class="language-javascript">// 1. False sharing prevention, 64-byte cache line separation
-const WRITE_INDEX = 0   // byte 0
-const READ_INDEX = 16   // byte 64 (separate cache line!)
-
-// 2. Batched atomics (corking)
-w.cork(() => {
-  for (const item of items) w.writeSync(size, fn)
-}) // Single Atomics.store when cork() returns
-
-// 3. Zero-copy reads, reuse same descriptor object
-const data = { buffer, view, offset: 0, length: 0 }
-
-// 4. Data inline in ring → sequential L1/L2 cache hits
-// 5. Atomics.wait for efficient blocking
-Atomics.wait(state, READ_INDEX, readPos, delay)</code></pre>
   </section>
 
   <section>
@@ -130,7 +110,7 @@ Atomics.wait(state, READ_INDEX, readPos, delay)</code></pre>
           <td class="speedup">2.1x</td>
         </tr>
         <tr>
-          <td>batch 100 messages</td>
+          <td>send batch</td>
           <td>4.3 µs</td>
           <td>46.8 µs</td>
           <td class="speedup">10.9x</td>

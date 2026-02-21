@@ -58,6 +58,19 @@ Atomics.store(i32, 0, i32[0])  // 1 × memory fence = 39 ns total</code></pre>
   </section>
 
   <section>
+    <h3>Real-World: writer.cork()</h3>
+    <pre><code class="language-javascript">// @nxtedition/shared – cork batches N writes into 1 atomic publish
+writer.cork(() => {
+  for (let i = 0; i < 100; i++) {
+    writer.writeSync(buf.byteLength, ({ buffer, byteOffset }) =>        // plain memcpy, no fence
+      byteOffset + buf.copy(buffer, byteOffset)
+    )
+  }
+})
+// on uncork → single Atomics.store(state, WRITE_INDEX, writePos)</code></pre>
+  </section>
+
+  <section>
     <h3>Polling vs wait/notify</h3>
     <pre><code class="language-javascript">// Option 1: Atomics.wait
 Atomics.wait(i32, 0, oldValue)  // block until value changes
