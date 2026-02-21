@@ -10,17 +10,13 @@
     <!-- Call path comparison -->
     <div style="display:flex;gap:16px;margin-bottom:12px">
       <div class="diagram-box" style="flex:1;padding:12px 16px;border-color:#ff5252">
-        <div style="color:#ff5252;font-weight:bold;font-size:0.95em;margin-bottom:8px">Normal N-API Call</div>
+        <div style="color:#ff5252;font-weight:bold;font-size:0.95em;margin-bottom:8px">Normal Native Call</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.95em">
           <span style="background:#333;padding:4px 10px;border-radius:4px;color:#e7ad52;font-weight:bold">JS</span>
           <span style="color:#666">&rarr;</span>
           <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">V8</span>
           <span style="color:#666">&rarr;</span>
-          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">N-API wrapper</span>
-          <span style="color:#666">&rarr;</span>
           <span style="background:#333;padding:4px 10px;border-radius:4px;color:#569cd6;font-weight:bold">C++</span>
-          <span style="color:#666">&rarr;</span>
-          <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">result</span>
           <span style="color:#666">&rarr;</span>
           <span style="background:#333;padding:4px 10px;border-radius:4px;color:#ccc">V8</span>
           <span style="color:#666">&rarr;</span>
@@ -50,7 +46,7 @@
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">TypedArrays</div>
-        <div style="color:#bbb;font-size:0.75em"><code style="color:#e7ad52">Int32Array[i] = v</code> — direct memory, zero overhead</div>
+        <div style="color:#bbb;font-size:0.75em"><code style="color:#e7ad52">Int32Array[i] = v</code>, direct memory, zero overhead</div>
       </div>
     </div>
     <div class="insight">
@@ -60,7 +56,7 @@
   </section>
 
   <section>
-    <h3>Sync vs Async — When to Use What</h3>
+    <h3>Sync vs Async: When to Use What</h3>
     <div style="display:flex;gap:14px;margin-bottom:10px">
       <div class="diagram-box" style="flex:1;padding:10px 14px;border-color:#569cd6">
         <div style="color:#569cd6;font-weight:bold;font-size:0.9em;margin-bottom:6px">Async</div>
@@ -90,7 +86,7 @@
         </tr>
       </tbody>
     </table>
-    <p class="small">Apple M3 Pro / Node.js 25.3.0 / SSD — .gc('inner') enabled</p>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0 / SSD, .gc('inner') enabled</p>
   </section>
 
   <section>
@@ -114,16 +110,37 @@
       </div>
     </div>
     <div class="insight" style="margin-top:14px">
-      Sync is not "bad" — it's the fastest path when you're not blocking anyone.
-      The key is knowing when blocking is acceptable.
+      Sync is not "bad" - it's the fastest path when doing useful work (CPU, in-memory ops).
+      It's harmful when doing blocking I/O that stalls the event loop waiting on external resources.
+      Many "I/O" APIs often hit OS caches and return instantly - I/O APIs are not always actual I/O.
     </div>
   </section>
 
   <section>
-    <h3>DatabaseSync — The New Paradigm</h3>
+    <h3>Sync in Workers: File Hashing</h3>
+    <pre style="margin:0"><code class="language-javascript">// worker.js - pure sync, runs in thread pool
+export default function ({ filePath }) {
+  const fd = fs.openSync(filePath, 'r')
+  try {
+    const hasher = crypto.createHash('md5')
+    const buf = Buffer.allocUnsafeSlow(128 * 1024)
+    let n
+    while ((n = fs.readSync(fd, buf)) > 0)
+      hasher.update(n < buf.byteLength ? buf.subarray(0, n) : buf)
+    return hasher.digest('hex')
+  } finally { fs.closeSync(fd) }
+}
+
+// main.js - async wrapper, main thread stays responsive
+const pool = new Piscina({ filename: './worker.js' })
+const hash = await pool.run({ filePath })</code></pre>
+  </section>
+
+  <section>
+    <h3>DatabaseSync: The New Paradigm</h3>
     <pre><code class="language-javascript">import { DatabaseSync } from 'node:sqlite'
 
-// Synchronous database access — no Promises, no callbacks
+// Synchronous database access, no Promises, no callbacks
 const db = new DatabaseSync(':memory:')
 db.exec('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)')
 

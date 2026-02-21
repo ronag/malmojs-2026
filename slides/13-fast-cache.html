@@ -9,15 +9,15 @@
     <h3>The Problems with LRU</h3>
     <ul class="spaced" style="font-size:0.75em">
       <li>
-        <strong style="color:#ff5252">Cache pollution</strong> — a single access promotes an item to head of the LRU list.
+        <strong style="color:#ff5252">Cache pollution</strong>: a single access promotes an item to head of the LRU list.
         One-time reads and rare keys push out hot data.
       </li>
       <li>
-        <strong style="color:#ff5252">Implementation overhead</strong> — doubly-linked list: every entry = <code>{key, value, prev, next}</code>.
+        <strong style="color:#ff5252">Implementation overhead</strong>: doubly-linked list: every entry = <code>{key, value, prev, next}</code>.
         Every access = unlink + relink at head. Pointer chasing through scattered heap memory = CPU cache unfriendly. Every entry = wrapper allocation → GC pressure.
       </li>
       <li>
-        <strong style="color:#ff5252">Scan problem</strong> — iterating a dataset larger than cache wipes the entire cache.
+        <strong style="color:#ff5252">Scan problem</strong>: iterating a dataset larger than cache wipes the entire cache.
         Every item gets "most recently used" status. LRU degrades to 0% hit rate; random degrades gracefully.
       </li>
     </ul>
@@ -25,16 +25,16 @@
 
   <section>
     <h3>Power-of-2 Random Choices</h3>
-    <p style="font-size:0.8em;color:#ccc;margin-bottom:12px">Instead of maintaining strict ordering — pick 2 random entries, evict the older one</p>
+    <p style="font-size:0.8em;color:#ccc;margin-bottom:12px">Instead of maintaining strict ordering, pick 2 random entries, evict the older one</p>
     <div class="diagram-box" style="font-size:0.65em">
       <div class="diagram-row" style="gap:16px">
         <div class="diagram-cell good" style="border-color:#4ec9b0">
           <h4 style="color:#4ec9b0">Resists one-hit-wonders</h4>
-          <p style="color:#bbb;margin:4px 0">A rarely accessed item must beat <strong style="color:#fff">both</strong> random picks to survive — statistically unlikely</p>
+          <p style="color:#bbb;margin:4px 0">A rarely accessed item must beat <strong style="color:#fff">both</strong> random picks to survive, statistically unlikely</p>
         </div>
         <div class="diagram-cell good" style="border-color:#4ec9b0">
           <h4 style="color:#4ec9b0">Scan resistant</h4>
-          <p style="color:#bbb;margin:4px 0">Random picks spread across cache — scans can't systematically push out hot items</p>
+          <p style="color:#bbb;margin:4px 0">Random picks spread across cache; scans can't systematically push out hot items</p>
         </div>
       </div>
       <div class="diagram-row" style="gap:16px;margin-top:12px">
@@ -44,7 +44,7 @@
         </div>
         <div class="diagram-cell good" style="border-color:#4ec9b0">
           <h4 style="color:#4ec9b0">Graceful degradation</h4>
-          <p style="color:#bbb;margin:4px 0">Hit rate declines smoothly under pressure — unlike LRU which cliff-drops to 0%</p>
+          <p style="color:#bbb;margin:4px 0">Hit rate declines smoothly under pressure, unlike LRU which cliff-drops to 0%</p>
         </div>
       </div>
     </div>
@@ -54,7 +54,7 @@
   </section>
 
   <section>
-    <h3>Implementation — Structure</h3>
+    <h3>Implementation: Structure</h3>
     <pre><code class="language-javascript">class FastCache {
   #map = new Map()    // key → item (O(1) lookup)
   #arr = []           // unordered items (O(1) swap-remove)
@@ -71,7 +71,7 @@
   </section>
 
   <section>
-    <h3>Implementation — get()</h3>
+    <h3>Implementation: get()</h3>
     <pre><code class="language-javascript">  get(key) {
     const item = this.#map.get(key)
     if (item !== undefined) item[kCacheTick] = ++this.#tick
@@ -80,7 +80,7 @@
   </section>
 
   <section>
-    <h3>Implementation — set()</h3>
+    <h3>Implementation: set()</h3>
     <pre><code class="language-javascript">  set(key, item) {
     if (item[kCacheIdx] !== -1) { item[kCacheTick] = ++this.#tick; return }
 
@@ -90,6 +90,7 @@
       const idx = this.#arr[i][kCacheTick] <= this.#arr[j][kCacheTick] ? i : j
       const evicted = this.#arr[idx]
       this.#map.delete(evicted[kCacheKey])
+      swapRemove(this.#arr, idx)
       const last = this.#arr.pop() // swap-remove
       if (last !== evicted) {
         this.#arr[idx] = last; last[kCacheIdx] = idx
@@ -108,16 +109,17 @@
     <table class="benchmark">
       <thead><tr><th>Operation</th><th>Intrusive Random-2</th><th>lru-cache</th><th>Speedup</th></tr></thead>
       <tbody>
-        <tr><td>get (hit)</td><td>14.6 ns</td><td>23.8 ns</td><td><strong>1.6x</strong></td></tr>
-        <tr><td>set (warm)</td><td>8.1 ns</td><td>87 ns</td><td><strong>10.8x</strong></td></tr>
-        <tr><td>mixed get/set 80/20</td><td>23.3 ns</td><td>34.2 ns</td><td><strong>1.5x</strong></td></tr>
-        <tr><td>eviction (256 ops)</td><td>646 ns</td><td>33 µs</td><td><strong>51x</strong></td></tr>
-        <tr><td>batch 1000</td><td>6.9 µs</td><td>101 µs</td><td><strong>14.7x</strong></td></tr>
-        <tr><td>GC pressure (1000 ops)</td><td>~0 B</td><td>48.2 KB</td><td class="speedup">zero alloc</td></tr>
+        <tr><td>get (hit)</td><td>29.2 ns</td><td>51.9 ns</td><td class="speedup"><strong>1.8x</strong></td></tr>
+        <tr><td>set (warm)</td><td>8.3 ns</td><td>89.3 ns</td><td class="speedup"><strong>10.7x</strong></td></tr>
+        <tr><td>mixed get/set 80/20</td><td>40.4 ns</td><td>76.4 ns</td><td class="speedup"><strong>1.9x</strong></td></tr>
+        <tr><td>eviction (256 ops)</td><td>1.1 µs</td><td>137 µs</td><td class="speedup"><strong>124x</strong></td></tr>
+        <tr><td>batch 1000</td><td>17.4 µs</td><td>321 µs</td><td class="speedup"><strong>18.4x</strong></td></tr>
+        <tr><td>GC pressure (batch 1000)</td><td>~0.9 KB</td><td>150 KB</td><td class="speedup">~170x less</td></tr>
       </tbody>
     </table>
     <div class="insight">
-      Intrusive bookkeeping + monotonic tick counter + swap-remove = zero-alloc cache.
+      Intrusive bookkeeping + monotonic tick counter + swap-remove = near-zero-alloc cache.
+      ~170x less GC pressure than lru-cache.
     </div>
   </section>
 </section>

@@ -40,45 +40,11 @@ async function queryDb(id) {             // Promise #3
   } finally {
     pool.release(conn)
   }
-}
-
-// One "simple" DB query = 5+ Promises allocated
-// At 10,000 req/s = 50,000 Promises/s = GC pressure</code></pre>
-  </section>
-
-  <section>
-    <h3>Callback vs async/await</h3>
-    <table class="benchmark">
-      <thead>
-        <tr><th>Pattern</th><th>Time</th><th>vs callback</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>sync function</td>
-          <td>1.0 ns</td>
-          <td class="speedup">baseline</td>
-        </tr>
-        <tr>
-          <td>callback (sync fire)</td>
-          <td>2.3 ns</td>
-          <td class="speedup">~1x</td>
-        </tr>
-        <tr>
-          <td>async/await</td>
-          <td>338 ns</td>
-          <td><strong>145x slower</strong></td>
-        </tr>
-        <tr>
-          <td>new Promise(resolve => ...)</td>
-          <td>311 ns</td>
-          <td><strong>133x slower</strong></td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="small">Apple M3 Pro / Node.js 25.3.0 — .gc('inner') enabled</p>
+}</code></pre>
     <div class="insight">
-      Callbacks fire synchronously with zero allocation. <code>async/await</code> always creates
-      a Promise + microtask — even when the result is already available.
+      One "simple" DB query = 5+ Promises allocated.
+      At 10,000 req/s = 50,000 Promises/s = GC pressure, microtask queue contention,
+      CPU cache thrashing, and event loop latency.
     </div>
   </section>
 
@@ -136,8 +102,8 @@ const value = result.async
   </section>
 
   <section>
-    <h3>Async Return Pattern — Real World</h3>
-    <pre><code class="language-javascript">// Processing a stream of messages — most are cache hits
+    <h3>Async Return Pattern: Real World</h3>
+    <pre><code class="language-javascript">// Processing a stream of messages, most are cache hits
 function processMessage(msg) {
   const result = resolve(msg.key)
 
@@ -155,12 +121,12 @@ function processMessage(msg) {
 // - With pattern:      5k Promises/sec (95% fewer)</code></pre>
     <div class="insight">
       At 100k msg/s with 95% cache hits: 95k avoid Promises entirely.
-      The sync path is a plain function call — no allocation, no microtask, no GC.
+      The sync path is a plain function call: no allocation, no microtask, no GC.
     </div>
   </section>
 
   <section>
-    <h3>Async Return Pattern — Benchmarks</h3>
+    <h3>Async Return Pattern vs async/await</h3>
     <table class="benchmark">
       <thead>
         <tr><th>Scenario</th><th>async function</th><th>Async return</th><th>Speedup</th></tr>

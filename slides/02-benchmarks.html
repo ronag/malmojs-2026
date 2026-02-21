@@ -14,7 +14,7 @@
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
         <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Constant folding</div>
-        <div style="color:#999;font-size:0.7em">Inputs that never change let TurboFan precompute the answer at compile time. Loop runs in 0ns — not because it's fast, because it doesn't run.</div>
+        <div style="color:#999;font-size:0.7em">Inputs that never change let TurboFan precompute the answer at compile time. Loop runs in 0ns; not because it's fast, because it doesn't run.</div>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
         <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">JIT warmup</div>
@@ -26,14 +26,14 @@
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
         <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:4px">Garbage collection</div>
-        <div style="color:#999;font-size:0.7em">GC can pause mid-run — one iteration 50 ns, the next 5,000 ns. Many frameworks suppress GC between samples, making allocation look free.</div>
+        <div style="color:#999;font-size:0.7em">GC can pause mid-run; one iteration 50 ns, the next 5,000 ns. Many frameworks suppress GC between samples, making allocation look free.</div>
       </div>
     </div>
   </section>
 
   <section>
     <h3>V8 Works Against Your Benchmark</h3>
-    <pre><code class="language-javascript">// BAD: V8 will fold this — result is constant, loop is deleted
+    <pre><code class="language-javascript">// BAD: V8 will fold this; result is constant, loop is deleted
 let sum = 0
 for (let i = 0; i < 1e6; i++) sum += i
 console.log(sum) // TurboFan: just emit "499999500000"
@@ -52,7 +52,7 @@ bench('sum', () => {
     <div style="display:flex;gap:12px;margin-bottom:10px">
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
         <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">Branch prediction</div>
-        <div style="color:#999;font-size:0.7em">A benchmark loop that always takes the same branch gets "memorized" by the CPU predictor. In production, branches are unpredictable — you'll see 10× worse latency.</div>
+        <div style="color:#999;font-size:0.7em">A benchmark loop that always takes the same branch gets "memorized" by the CPU predictor. In production, branches are unpredictable, and you'll see 10x worse latency.</div>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
         <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">Cache effects</div>
@@ -71,23 +71,23 @@ bench('sum', () => {
 
   <section>
     <h3>Big-O Lies: Cache Beats Complexity</h3>
-    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Asymptotic complexity assumes uniform memory access cost — CPUs don't work that way</p>
+    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Asymptotic complexity assumes uniform memory access cost; CPUs don't work that way</p>
     <div class="columns">
       <div class="col">
-        <h4 style="color:#4ec9b0">Array splice — O(n)</h4>
+        <h4 style="color:#4ec9b0">Array splice: O(n)</h4>
         <pre><code class="language-javascript">arr.splice(idx, 1)</code></pre>
         <p style="font-size:0.7em;color:#999">
-          Shifts every element after <code>idx</code> — but it's one sequential
+          Shifts every element after <code>idx</code>, but it's one sequential
           <code>memmove</code> over contiguous memory. The CPU prefetcher loads
           ahead automatically. Each element costs <strong style="color:#4ec9b0">~1 ns</strong> (L1 hit).
         </p>
       </div>
       <div class="col">
-        <h4 style="color:#e7ad52">Linked List remove — O(1)</h4>
+        <h4 style="color:#e7ad52">Linked List remove: O(1)</h4>
         <pre><code class="language-javascript">node.prev.next = node.next
 node.next.prev = node.prev</code></pre>
         <p style="font-size:0.7em;color:#999">
-          Only 4 pointer writes — but <code>node</code>, <code>node.prev</code>,
+          Only 4 pointer writes, but <code>node</code>, <code>node.prev</code>,
           and <code>node.next</code> are at random locations in the heap.
           Each dereference costs <strong style="color:#ff5252">~100 ns</strong> (cache miss).
         </p>
@@ -95,7 +95,7 @@ node.next.prev = node.prev</code></pre>
     </div>
     <div class="insight">
       At N=10,000: array splice (~1.75 µs) is <strong>17× faster</strong> than a linked list
-      remove + re-add (~30 µs) — despite being O(n) vs O(1).<br>
+      remove + re-add (~30 µs), despite being O(n) vs O(1).<br>
       Big-O counts <em>steps</em>. It says nothing about <em>memory latency</em>.
       <span style="color:#888">(Real data: intrusive containers section)</span>
     </div>
@@ -104,9 +104,9 @@ node.next.prev = node.prev</code></pre>
   <section>
     <h3>GC Ruins Benchmarks</h3>
     <p style="font-size:0.75em;color:#ccc;margin-bottom:6px">
-      GC can fire mid-run: one iteration 50 ns, GC iteration 5,000 ns —
+      GC can fire mid-run: one iteration 50 ns, GC iteration 5,000 ns;
       average looks fine, P99 is a disaster.<br>
-      Many frameworks disable GC between samples for stable numbers — but that hides the real cost.
+      Many frameworks disable GC between samples for stable numbers, but that hides the real cost.
     </p>
     <div class="warning">
       Benchmarks that disable GC between runs show <em>best-case allocation cost</em>,
@@ -117,16 +117,16 @@ node.next.prev = node.prev</code></pre>
   <section>
     <h3>Rules for Trustworthy Benchmarks</h3>
     <ol class="spaced" style="font-size:0.78em;">
-      <li><strong>Use <code>do_not_optimize</code></strong> — prevent dead code elimination and constant folding</li>
-      <li><strong>Randomize inputs</strong> — prevent V8 and the CPU from memorizing the pattern</li>
-      <li><strong>Warm up</strong> — run the function 10k+ times before measuring so TurboFan kicks in</li>
-      <li><strong>Use realistic data sizes</strong> — if production data is 100 MB, don't benchmark with 1 KB</li>
-      <li><strong>Include GC pressure</strong> — allocating benchmarks need GC runs inside the measured loop</li>
-      <li><strong>Validate against production</strong> — if the benchmark disagrees with prod metrics, trust prod</li>
+      <li><strong>Use <code>do_not_optimize</code></strong>: prevent dead code elimination and constant folding</li>
+      <li><strong>Randomize inputs</strong>: prevent V8 and the CPU from memorizing the pattern</li>
+      <li><strong>Warm up</strong>: run the function 10k+ times before measuring so TurboFan kicks in</li>
+      <li><strong>Use realistic data sizes</strong>: if production data is 100 MB, don't benchmark with 1 KB</li>
+      <li><strong>Include GC pressure</strong>: allocating benchmarks need GC runs inside the measured loop</li>
+      <li><strong>Validate against production</strong>: if the benchmark disagrees with prod metrics, trust prod</li>
     </ol>
     <div class="insight">
       All benchmarks in these slides use <span class="npm-badge">mitata</span> with <code>yield.gc('inner')</code>
-      where allocations are involved. Numbers are still approximations — use them as relative guides,
+      where allocations are involved. Numbers are still approximations; use them as relative guides,
       not absolute truths.
     </div>
   </section>
@@ -136,10 +136,13 @@ node.next.prev = node.prev</code></pre>
       <div style="font-size:2.2em;color:#e7ad52;font-style:italic;text-align:center;line-height:1.3">
         "Robert… have you measured?"
       </div>
-      <div style="color:#666;font-size:0.85em">— Jesper, every single time</div>
+      <div style="color:#666;font-size:0.85em">- Jesper, every single time</div>
       <div class="insight" style="max-width:600px;text-align:center">
-        Your intuition about performance is almost certainly wrong.<br>
+        Your intuition about performance is almost certainly wrong;
+        <br><br>
         <strong>Measure. Then measure again. Then consider the <em>trend</em>, not the nanoseconds.</strong>
+        <br><br>
+        Benchmarks are hard to get right; sometimes you just have to trust your intuition.
       </div>
     </div>
   </section>

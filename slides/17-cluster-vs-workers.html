@@ -26,17 +26,17 @@ if (cluster.isPrimary) {
     <h3>Worker Threads + reusePort</h3>
     <pre><code class="language-javascript">import { Worker } from 'node:worker_threads'
 
-// Main thread — just spawns workers
+// Main thread, just spawns workers
 for (let i = 0; i < cpus().length; i++) new Worker('./http-worker.js')
 
-// http-worker.js — each worker binds directly
+// http-worker.js, each worker binds directly
 createServer(handler).listen({ port: 3000, reusePort: true })</code></pre>
     <!-- reusePort benefits -->
-    <p style="font-size:0.75em;color:#ccc;margin:10px 0 8px"><code style="color:#e7ad52">SO_REUSEPORT</code> — each worker binds to the same port</p>
+    <p style="font-size:0.75em;color:#ccc;margin:10px 0 8px"><code style="color:#e7ad52">SO_REUSEPORT</code>: each worker binds to the same port</p>
     <div style="display:flex;gap:10px">
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Kernel load balancing</div>
-        <div style="color:#999;font-size:0.7em">OS distributes connections — no primary bottleneck</div>
+        <div style="color:#999;font-size:0.7em">OS distributes connections, no primary bottleneck</div>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">Shared memory</div>
@@ -44,7 +44,7 @@ createServer(handler).listen({ port: 3000, reusePort: true })</code></pre>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #4ec9b0">
         <div style="color:#4ec9b0;font-weight:bold;font-size:0.8em;margin-bottom:4px">eBPF steering</div>
-        <div style="color:#999;font-size:0.7em"><code style="color:#ccc">SO_REUSEPORT</code> exposes a BPF socket hook — attach an eBPF program to steer connections by CPU affinity, session hash, or worker load, entirely in kernel space</div>
+        <div style="color:#999;font-size:0.7em"><code style="color:#ccc">SO_REUSEPORT</code> exposes a BPF socket hook; attach an eBPF program to steer connections by CPU affinity, session hash, or worker load, entirely in kernel space</div>
       </div>
     </div>
   </section>

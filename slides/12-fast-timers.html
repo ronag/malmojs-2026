@@ -49,7 +49,7 @@
   </section>
 
   <section>
-    <h3>Pooled Timers — The Solution</h3>
+    <h3>Pooled Timers: The Solution</h3>
     <pre><code class="language-javascript">import { setTimeout, clearTimeout } from '@nxtedition/timers'
 
 // For delays >= 1000ms: uses a SINGLE shared timer
@@ -90,10 +90,10 @@ function dispatch() {
   </section>
 
   <section>
-    <h3>Benchmarks</h3>
+    <h3>Native vs Pooled setTimeout</h3>
     <table class="benchmark">
       <thead>
-        <tr><th>Benchmark</th><th>Native setTimeout</th><th>Pooled setTimeout</th><th>Speedup</th></tr>
+        <tr><th>Operation</th><th>Native setTimeout</th><th>Pooled setTimeout</th><th>Speedup</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -120,7 +120,7 @@ function dispatch() {
     <div class="insight">
       Under GC pressure the advantage is <strong>26x</strong>.
       Native timer handles are expensive C++ objects for the GC to trace.
-      Pooled timers are plain JS objects — invisible to the C++ GC.
+      Pooled timers are plain JS objects, invisible to the C++ GC.
     </div>
   </section>
 </section>

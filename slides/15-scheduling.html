@@ -8,10 +8,10 @@
   <section>
     <h3>The Problem</h3>
     <ul class="spaced">
-      <li>Node.js has a single event loop — all work competes equally</li>
+      <li>Node.js has a single event loop; all work competes equally</li>
       <li>A background task can starve a latency-sensitive request</li>
       <li>No built-in mechanism for task priorities</li>
-      <li>libuv thread pool has a single FIFO queue — high-priority tasks get queued behind low-priority ones</li>
+      <li>libuv thread pool has a single FIFO queue; high-priority tasks get queued behind low-priority ones</li>
     </ul>
   </section>
 
@@ -21,13 +21,13 @@
 
 const scheduler = new Scheduler({ concurrency: 4 })
 
-// High priority — latency-sensitive work
+// High priority, latency-sensitive work
 await scheduler.run(() => handleApiRequest(req), 'high')
 
-// Normal priority — standard work
+// Normal priority, standard work
 await scheduler.run(() => processMessage(msg), 'normal')
 
-// Low priority — background tasks
+// Low priority, background tasks
 await scheduler.run(() => generateReport(), 'low')
 
 // 7 priority levels:
@@ -37,7 +37,7 @@ await scheduler.run(() => generateReport(), 'low')
 
   <section>
     <h3>Starvation Prevention</h3>
-    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Bit manipulation on an incrementing counter — <code>if (counter &amp; bit)</code></p>
+    <p style="font-size:0.75em;color:#ccc;margin-bottom:10px">Bit manipulation on an incrementing counter: <code>if (counter &amp; bit)</code></p>
     <div class="diagram-box" style="font-size:0.65em">
       <div style="display:flex;flex-direction:column;gap:6px">
         <div style="display:flex;align-items:center;gap:8px">
@@ -96,7 +96,7 @@ for (let i = 0; i < 4; i++) {
 const scheduler = new Scheduler(workerData.sharedState)</code></pre>
     <div class="insight">
       Without coordination, 4 workers each enqueue into the same FIFO thread pool
-      — high-priority tasks get stuck behind low-priority ones.
+      and high-priority tasks get stuck behind low-priority ones.
     </div>
   </section>
 </section>

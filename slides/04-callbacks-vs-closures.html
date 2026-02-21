@@ -29,7 +29,7 @@
 }
 
 function sendLater(ctx) {
-  // Passes data directly — no closure
+  // Passes data directly, no closure
   setTimeout(onTimeout, 5000, ctx)
 }
 
@@ -104,14 +104,14 @@ queue.push(() => handler(ctx))</code></pre>
     this.head = this.tail = 0
   }
 }
-// Static function ref — zero alloc
+// Static function ref, zero alloc
 queue.push(handler, ctx)</code></pre>
       </div>
     </div>
   </section>
 
   <section>
-    <h3>Queue Benchmarks</h3>
+    <h3>Closure Queue vs Flat Array Queue</h3>
     <table class="benchmark">
       <thead>
         <tr><th>Scenario</th><th>Closure Queue</th><th>Flat Queue</th><th>Speedup</th></tr>
@@ -139,7 +139,7 @@ queue.push(handler, ctx)</code></pre>
     </table>
     <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
     <div class="insight">
-      The flat queue stores <code>[callback, opaque]</code> pairs — zero allocations.
+      The flat queue stores <code>[callback, opaque]</code> pairs with zero allocations.
       At scale, this eliminates thousands of closure objects per drain cycle.
     </div>
   </section>

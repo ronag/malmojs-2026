@@ -1,15 +1,15 @@
-<!-- WEB APIs — THE COMPATIBILITY TAX -->
+<!-- WEB APIs: THE COMPATIBILITY TAX -->
 <section id="web-apis">
   <section class="section-header">
-    <h2>Web APIs — The Compatibility Tax</h2>
+    <h2>Web APIs: The Compatibility Tax</h2>
     <p>Spec compliance has a cost. Know your alternatives.</p>
   </section>
 
   <section>
-    <h3>URL Parsing — <code>new URL()</code> vs <code>request-target</code></h3>
+    <h3>URL Parsing: <code>new URL()</code> vs <code>request-target</code></h3>
     <div style="display:flex;gap:16px;margin-bottom:12px">
       <div style="flex:1">
-        <pre><code class="language-javascript">// WHATWG URL — general purpose, slow
+        <pre><code class="language-javascript">// WHATWG URL, general purpose, slow
 const u = new URL(req.url, 'http://x')
 // full spec compliance: IDN, unicode,
 // normalisation, lots of edge cases
@@ -18,7 +18,7 @@ const u = new URL(req.url, 'http://x')
       <div style="flex:1">
         <pre><code class="language-javascript">import parseTarget from 'request-target'
 // RFC 7230 HTTP-only parser
-// no IDN, no scheme normalisation —
+// no IDN, no scheme normalisation,
 // just what HTTP actually needs
 // → 552,748 ops/sec</code></pre>
       </div>
@@ -32,16 +32,16 @@ const u = new URL(req.url, 'http://x')
       </tbody>
     </table>
     <div class="insight">
-      <code>new URL()</code> handles unicode hostnames, protocol-relative URLs, and IDNA encoding —
+      <code>new URL()</code> handles unicode hostnames, protocol-relative URLs, and IDNA encoding,
       none of which appear in HTTP/1.1 request lines.
       Use <span class="npm-badge">request-target</span> for request parsing.
     </div>
   </section>
 
   <section>
-    <h3>HTTP Client — <code>fetch</code> vs <code>undici</code></h3>
+    <h3>HTTP Client: <code>fetch</code> vs <code>undici</code></h3>
     <p style="font-size:0.7em;color:#888;text-align:center;margin-bottom:10px">
-      Node.js 22.11.0 — 50 connections, pipelining depth 10 — source: undici README
+      Node.js 22.11.0, 50 connections, pipelining depth 10 (source: undici README)
     </p>
     <table class="benchmark">
       <thead><tr><th>Client</th><th>req/sec</th><th>vs fetch</th></tr></thead>
@@ -51,7 +51,7 @@ const u = new URL(req.url, 'http://x')
       </tbody>
     </table>
     <div class="insight">
-      <code>fetch</code> is built on undici but adds the Web Fetch spec layer — <code>Request</code>/<code>Response</code>
+      <code>fetch</code> is built on undici but adds the Web Fetch spec layer: <code>Request</code>/<code>Response</code>
       objects, <code>Headers</code> cloning, body as a Web Stream.
       Use <span class="npm-badge">undici</span> <code>.request()</code> directly for 3–4× throughput.
     </div>
@@ -59,18 +59,18 @@ const u = new URL(req.url, 'http://x')
 
   <section>
     <h3>Web Streams vs Node Streams</h3>
-    <p style="font-size:0.65em;color:#888;text-align:center;margin-bottom:10px">higher throughput = better — allocation: lower = better</p>
+    <p style="font-size:0.65em;color:#888;text-align:center;margin-bottom:10px">higher throughput = better / allocation: lower = better</p>
     <table class="benchmark">
       <thead><tr><th>Scenario</th><th>Web Streams</th><th>Node Streams</th><th>Δ</th></tr></thead>
       <tbody>
         <tr><td>allocation (per request cost)</td><td>3.95 µs · 3.4 KB</td><td class="speedup">21 ns · 369 B</td><td style="color:#4ec9b0">Node <strong>184x</strong></td></tr>
-        <tr><td>read-only — consume (64KB × 500)</td><td>117 µs</td><td class="speedup">21 µs</td><td style="color:#4ec9b0">Node <strong>5.5x</strong></td></tr>
-        <tr><td>write-only — push to sink (64KB × 500)</td><td>165 µs</td><td class="speedup">12 µs</td><td style="color:#4ec9b0">Node <strong>13.4x</strong></td></tr>
+        <tr><td>read-only, consume (64KB x 500)</td><td>117 µs</td><td class="speedup">21 µs</td><td style="color:#4ec9b0">Node <strong>5.5x</strong></td></tr>
+        <tr><td>write-only, push to sink (64KB x 500)</td><td>165 µs</td><td class="speedup">12 µs</td><td style="color:#4ec9b0">Node <strong>13.4x</strong></td></tr>
         <tr><td>pipeline passthrough (64KB × 500)</td><td>293 µs</td><td class="speedup">45 µs</td><td style="color:#4ec9b0">Node <strong>6.5x</strong></td></tr>
       </tbody>
     </table>
     <div class="insight">
-      Node Streams win across the board. <code>await writer.write()</code> adds a microtask per chunk — Node's callbacks are synchronous.
+      Node Streams win across the board. <code>await writer.write()</code> adds a microtask per chunk; Node's callbacks are synchronous.
       Web Streams cost more to allocate; avoid them in hot paths like per-request stream creation.
     </div>
   </section>

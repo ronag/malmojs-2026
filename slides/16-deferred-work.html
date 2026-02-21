@@ -9,7 +9,7 @@
     <h3>Do Work, but Later</h3>
     <div class="columns">
       <div class="col">
-        <h4 style="color:#ff5252">O(1) inline — Set</h4>
+        <h4 style="color:#ff5252">O(1) inline: Set</h4>
         <pre><code class="language-javascript">// "Slow" Set with hashing + GC overhead
 const requests = new Set()
 
@@ -23,8 +23,8 @@ function onRequest(req) {
 }</code></pre>
       </div>
       <div class="col">
-        <h4 style="color:#4ec9b0">O(n) deferred — Array</h4>
-        <pre><code class="language-javascript">// Fast Array — zero overhead on hot path
+        <h4 style="color:#4ec9b0">O(n) deferred: Array</h4>
+        <pre><code class="language-javascript">// Fast Array, zero overhead on hot path
 const requests = []
 const cleanup = () => {
   for (let n = 0, len = requests.length; n < len; n++) {
@@ -38,7 +38,7 @@ const cleanupTimer = setTimeout(() => {
 }, 2e3) // every 2s
 
 function onRequest(req) {
-  // O(1) but fast — just push to array
+  // O(1) but fast, just push to array
   requests.push(req)
 }
 </code></pre>
@@ -64,7 +64,7 @@ function onRequest(req) {
       </div>
     </div>
     <div class="insight">
-      You can't avoid expensive work — but you can <strong>choose when it happens</strong>.<br>
+      You can't avoid expensive work, but you can <strong>choose when it happens</strong>.<br>
     </div>
   </section>
 </section>

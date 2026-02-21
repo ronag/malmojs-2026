@@ -59,7 +59,7 @@ function remove(arr, item) {
           <span style="color:#999;margin:0 8px">→ shift →</span>
           <span class="swap-cell">A</span><span class="swap-cell">B</span><span class="swap-cell swap-moved">D</span><span class="swap-cell swap-moved">E</span>
         </div>
-        <div style="color:#ff5252;font-size:0.9em;padding-left:4px">Every element after C must shift left — O(n)</div>
+        <div style="color:#ff5252;font-size:0.9em;padding-left:4px">Every element after C must shift left, O(n)</div>
       </div>
       <div class="separator"></div>
       <div>
@@ -69,7 +69,7 @@ function remove(arr, item) {
           <span style="color:#999;margin:0 8px">→ swap C↔E →</span>
           <span class="swap-cell">A</span><span class="swap-cell">B</span><span class="swap-cell swap-moved">E</span><span class="swap-cell">D</span>
         </div>
-        <div style="color:#4ec9b0;font-size:0.9em;padding-left:4px">Only 1 move + pop — O(1). Order doesn't matter? Use swap-remove.</div>
+        <div style="color:#4ec9b0;font-size:0.9em;padding-left:4px">Only 1 move + pop, O(1). Order doesn't matter? Use swap-remove.</div>
       </div>
     </div>
     <div class="insight">
@@ -79,7 +79,7 @@ function remove(arr, item) {
   </section>
 
   <section>
-    <h3>Container Benchmarks</h3>
+    <h3>Standard vs Intrusive Containers</h3>
     <div style="font-size:0.7em;color:#999;margin-bottom:8px;text-align:center">
       remove + re-add on pre-filled container (N=10,000)
     </div>
@@ -116,7 +116,7 @@ function remove(arr, item) {
     </table>
     <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
     <div class="insight">
-      Intrusive swap-remove is O(1) — ~5ns regardless of container size.
+      Intrusive swap-remove is O(1), ~5ns regardless of container size.
       At N=10,000: array splice is <strong>350x slower</strong>, linked list is <strong>5,800x slower</strong> (node allocation + pointer chasing + GC).
     </div>
   </section>

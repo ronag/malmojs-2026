@@ -19,7 +19,7 @@ parentPort.postMessage(buffer, [buffer.buffer])
   </section>
 
   <section>
-    <h3>Ring Buffer — Data Inline, Cache Friendly</h3>
+    <h3>Ring Buffer: Data Inline, Cache Friendly</h3>
     <div class="diagram-box">
       <div class="diagram-title">SharedArrayBuffer (contiguous memory, shared between threads)</div>
       <div class="ring-segment">
@@ -27,11 +27,11 @@ parentPort.postMessage(buffer, [buffer.buffer])
         <div class="diagram-row" style="gap:0">
           <div style="flex:1;border:1px solid #4ec9b0;padding:8px 12px;border-radius:4px 0 0 4px;background:rgba(78,201,176,0.08)">
             <div style="color:#4ec9b0;font-weight:bold;font-size:0.9em">WRITE_INDEX</div>
-            <div style="color:#888;font-size:0.8em">cache line 0 — byte 0</div>
+            <div style="color:#888;font-size:0.8em">cache line 0, byte 0</div>
           </div>
           <div style="flex:1;border:1px solid #e7ad52;border-left:none;padding:8px 12px;border-radius:0 4px 4px 0;background:rgba(231,173,82,0.08)">
             <div style="color:#e7ad52;font-weight:bold;font-size:0.9em">READ_INDEX</div>
-            <div style="color:#888;font-size:0.8em">cache line 1 — byte 64</div>
+            <div style="color:#888;font-size:0.8em">cache line 1, byte 64</div>
           </div>
         </div>
         <div style="text-align:center;color:#999;font-size:0.8em;margin-top:6px">← 64 bytes apart → false sharing prevention</div>
@@ -51,7 +51,7 @@ parentPort.postMessage(buffer, [buffer.buffer])
           <span>↑ writePos</span>
         </div>
         <div class="ring-note">
-          Data is <strong style="color:#ccc">INLINE</strong> — no pointers, no indirection. Sequential reads hit L1/L2 cache.
+          Data is <strong style="color:#ccc">INLINE</strong>, no pointers, no indirection. Sequential reads hit L1/L2 cache.
           Wraps circularly, no reallocation.
         </div>
       </div>
@@ -79,7 +79,7 @@ w.writeSync(data.byteLength, ({ buffer, byteOffset }) => {
 // Reader thread
 const r = reader(shared)
 r.readSome(({ buffer, byteOffset, byteLength }) => {
-  // Zero-copy read — directly access shared memory
+  // Zero-copy read, directly access shared memory
   // No serialization, no deserialization, no allocation
   processData(buffer, byteOffset, byteLength)
 })</code></pre>
@@ -87,7 +87,7 @@ r.readSome(({ buffer, byteOffset, byteLength }) => {
 
   <section>
     <h3>Key Optimizations</h3>
-    <pre><code class="language-javascript">// 1. False sharing prevention — 64-byte cache line separation
+    <pre><code class="language-javascript">// 1. False sharing prevention, 64-byte cache line separation
 const WRITE_INDEX = 0   // byte 0
 const READ_INDEX = 16   // byte 64 (separate cache line!)
 
@@ -96,7 +96,7 @@ w.cork(() => {
   for (const item of items) w.writeSync(size, fn)
 }) // Single Atomics.store when cork() returns
 
-// 3. Zero-copy reads — reuse same descriptor object
+// 3. Zero-copy reads, reuse same descriptor object
 const data = { buffer, view, offset: 0, length: 0 }
 
 // 4. Data inline in ring → sequential L1/L2 cache hits
@@ -137,7 +137,7 @@ Atomics.wait(state, READ_INDEX, readPos, delay)</code></pre>
         </tr>
       </tbody>
     </table>
-    <p class="small">Apple M3 Pro / Node.js 25.3.0 — .gc('inner') enabled</p>
+    <p class="small">Apple M3 Pro / Node.js 25.3.0, .gc('inner') enabled</p>
     <div class="insight">
       3.7x faster for small messages, 11x faster batched.<br>
       Ring buffer: zero-copy, inline data, no serialization, no GC pressure.

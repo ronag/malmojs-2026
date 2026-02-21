@@ -12,7 +12,7 @@
       <li>AWS EC2 instance (c7g.xlarge): ~$1,100/year</li>
       <li>One developer ≈ cost of <strong>150 servers</strong></li>
       <div class="insight">
-        "Premature optimization is the root of all evil" — Knuth<br>
+        "Premature optimization is the root of all evil" - Knuth<br>
         But knowing <em>where</em> to optimize is the root of all good.
       </div>
     </ul>
@@ -26,10 +26,10 @@
   <section>
     <h3>When to Optimize</h3>
     <ul class="spaced">
-      <li><strong>Hot paths</strong> — code that runs millions of times/sec</li>
-      <li><strong>High scale</strong> — 100+ servers, every % matters</li>
-      <li><strong>Latency-sensitive</strong> — real-time, trading, media</li>
-      <li><strong>Resource-constrained</strong> — edge, IoT, embedded</li>
+      <li><strong>Hot paths</strong>: code that runs millions of times/sec</li>
+      <li><strong>High scale</strong>: 100+ servers, every % matters</li>
+      <li><strong>Latency-sensitive</strong>: real-time, trading, media</li>
+      <li><strong>Resource-constrained</strong>: edge, IoT, embedded</li>
     </ul>
     <div class="warning">
       Don't optimize code that runs once per request on 2 servers.
@@ -64,12 +64,12 @@
             <span style="font-style:italic">savings</span> &times; <span style="font-style:italic">N</span><sub style="font-size:0.7em">consumers</sub>
           </div>
           <div style="color:#555;font-size:1.2em">⟹</div>
-          <div style="color:#ccc;font-size:0.75em"><strong style="color:#fff">Shared library?</strong> Multiplied savings — <strong style="color:#4ec9b0">almost always worth it.</strong></div>
+          <div style="color:#ccc;font-size:0.75em"><strong style="color:#fff">Shared library?</strong> Multiplied savings; <strong style="color:#4ec9b0">almost always worth it.</strong></div>
         </div>
       </div>
     </div>
     <aside class="notes">
-      Shared libraries are the sweet spot — you optimize once, everyone benefits.
+      Shared libraries are the sweet spot; you optimize once, everyone benefits.
     </aside>
   </section>
 
@@ -92,7 +92,7 @@
       <div class="diagram-box" style="padding:16px 22px;border-color:#569cd6;font-size:0.82em;color:#ccc;line-height:1.6">
         The difference between running a workload on <strong style="color:#fff">a single node</strong> vs.
         a massive, costly re-architecture into a
-        <strong style="color:#569cd6">distributed multi-node system</strong> —
+        <strong style="color:#569cd6">distributed multi-node system</strong>;
         with partial failures, consistency problems, and all the bugs and operational complexity that brings.
       </div>
     </div>
@@ -106,11 +106,11 @@
         are harder to <strong style="color:#ccc">reason about</strong>,
         harder to <strong style="color:#ccc">debug</strong>,
         and harder to <strong style="color:#ccc">maintain</strong>.
-        Choose the lesser evil — and measure before you choose.
+        Choose the lesser evil; and measure before you choose.
       </div>
       <div style="text-align:center;margin-top:8px;font-style:italic;font-size:0.88em;color:#aaa;line-height:1.7">
         "Simplicity is a necessary precondition for reliability."
-        <div style="margin-top:6px;font-style:normal;font-size:0.82em;color:#666">— Edsger W. Dijkstra</div>
+        <div style="margin-top:6px;font-style:normal;font-size:0.82em;color:#666">- Edsger W. Dijkstra</div>
       </div>
     </div>
   </section>

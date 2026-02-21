@@ -7,12 +7,12 @@
   <section>
     <h3>Key Takeaways</h3>
     <ol class="spaced" style="font-size: 0.78em;">
-      <li><strong>Measure first.</strong> Optimize only hot paths at high scale — dev time costs more than servers.</li>
+      <li><strong>Measure first.</strong> Optimize only hot paths at high scale; dev time costs more than servers.</li>
       <li><strong>Allocations are GC promises.</strong> Every object you create is work deferred to later. Reduce, reuse, bound your pools.</li>
       <li><strong>Sync beats async by 145×.</strong> Use sync fast paths when the result is already available; go async only when you must.</li>
       <li><strong>Don't block the event loop.</strong> <code>await</code> yields to microtasks, not I/O. Use <code>setImmediate</code> or <code>maybeYield</code> for long CPU work.</li>
       <li><strong>Workers + reusePort, not cluster.</strong> Kernel load balancing, no primary bottleneck, shared memory via SharedArrayBuffer.</li>
-      <li><strong>A few flags go a long way.</strong> <code>--max-semi-space-size</code>, <code>Buffer.poolSize</code>, <code>highWaterMark</code> — often free wins with one line.</li>
+      <li><strong>A few flags go a long way.</strong> <code>--max-semi-space-size</code>, <code>Buffer.poolSize</code>, <code>highWaterMark</code>, often free wins with one line.</li>
     </ol>
   </section>
 

@@ -21,7 +21,7 @@ zlib.deflate(buffer, callback)      // Compression
 
   <section>
     <h3>Configuring the Pool</h3>
-    <pre><code class="language-bash"># Set BEFORE requiring anything — must be in environment
+    <pre><code class="language-bash"># Set BEFORE requiring anything; must be in environment
 UV_THREADPOOL_SIZE=16 node server.js</code></pre>
     <div style="display:flex;gap:12px;margin-top:14px">
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #569cd6">
@@ -38,8 +38,8 @@ UV_THREADPOOL_SIZE=16 node server.js</code></pre>
       </div>
     </div>
     <div class="warning" style="margin-top:14px">
-      Default is <strong>4 threads</strong> — almost certainly too low for production.<br>
-      The pool is shared across all Worker threads in the same process — more workers = more contention.
+      Default is <strong>4 threads</strong>, almost certainly too low for production.<br>
+      The pool is shared across all Worker threads in the same process; more workers = more contention.
     </div>
   </section>
 
@@ -49,7 +49,7 @@ UV_THREADPOOL_SIZE=16 node server.js</code></pre>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:12px 14px;border-left:3px solid #ff5252">
         <div style="color:#ff5252;font-weight:bold;font-size:0.8em;margin-bottom:6px">Must set early</div>
         <div style="color:#999;font-size:0.7em">
-          <code style="color:#bbb">UV_THREADPOOL_SIZE</code> is read once — when libuv initializes the pool.
+          <code style="color:#bbb">UV_THREADPOOL_SIZE</code> is read once, when libuv initializes the pool.
           Setting it after any I/O has started has no effect.
         </div>
       </div>
@@ -73,10 +73,10 @@ UV_THREADPOOL_SIZE=16 node server.js</code></pre>
   <section>
     <h3>Pool Size vs Throughput</h3>
     <div style="font-size:0.7em;color:#999;margin-bottom:8px;text-align:center">
-      <a href="https://github.com/nodejs/node/pull/61533" style="color:#42affa">nodejs/node#61533</a> — auto-sizes UV_THREADPOOL_SIZE to available parallelism
+      <a href="https://github.com/nodejs/node/pull/61533" style="color:#42affa">nodejs/node#61533</a>, auto-sizes UV_THREADPOOL_SIZE to available parallelism
     </div>
     <!-- 16 vCPU machine: auto-sizing 4 → 16 threads -->
-    <div style="font-size:0.65em;color:#888;margin-bottom:4px">16 vCPU / 32GB — autocannon 100 connections, 30s per route</div>
+    <div style="font-size:0.65em;color:#888;margin-bottom:4px">16 vCPU / 32GB, autocannon 100 connections, 30s per route</div>
     <table class="benchmark">
       <thead>
         <tr><th>Workload</th><th>4 threads (baseline)</th><th>16 threads (PR)</th><th>Change</th></tr>
@@ -105,7 +105,7 @@ UV_THREADPOOL_SIZE=16 node server.js</code></pre>
     <!-- 4 vCPU: same pool size = no change -->
     <div style="display:flex;gap:10px;margin-top:10px">
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #e7ad52">
-        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">4 vCPU — no change</div>
+        <div style="color:#e7ad52;font-weight:bold;font-size:0.8em;margin-bottom:4px">4 vCPU, no change</div>
         <div style="color:#999;font-size:0.7em">Pool stays at 4 threads → identical performance</div>
       </div>
       <div style="flex:1;background:#1a1a1a;border-radius:6px;padding:10px 14px;border-left:3px solid #ff5252">
@@ -113,10 +113,10 @@ UV_THREADPOOL_SIZE=16 node server.js</code></pre>
         <div style="color:#999;font-size:0.7em">More threads = more contention on same FDs. SSD is already fast enough.</div>
       </div>
     </div>
-    <p class="small">AMD EPYC-Rome @ 2.0GHz — benchmarks by @RafaelGSS</p>
+    <p class="small">AMD EPYC-Rome @ 2.0GHz, benchmarks by @RafaelGSS</p>
     <div class="insight">
       Auto-sizing gives +281% on crypto-heavy workloads for free.
-      Pure fs on SSD sees slight regression — more threads add scheduling overhead, not speed.
+      Pure fs on SSD sees slight regression; more threads add scheduling overhead, not speed.
     </div>
   </section>
 

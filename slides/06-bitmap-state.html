@@ -9,7 +9,7 @@
     <h3>The Pattern</h3>
     <div style="display:flex;gap:16px">
       <div style="flex:1">
-        <div style="font-size:0.65em;color:#ff5252;margin-bottom:6px">Object properties — scattered state</div>
+        <div style="font-size:0.65em;color:#ff5252;margin-bottom:6px">Object properties: scattered state</div>
         <pre><code class="language-javascript">class State {
   objectMode  = false
   ended       = false
@@ -24,7 +24,7 @@
 // State spread across multiple cache lines</code></pre>
       </div>
       <div style="flex:1">
-        <div style="font-size:0.65em;color:#4ec9b0;margin-bottom:6px">Bitmap — all state in one integer</div>
+        <div style="font-size:0.65em;color:#4ec9b0;margin-bottom:6px">Bitmap: all state in one integer</div>
         <pre><code class="language-javascript">const kObjectMode  = 1 << 0
 const kEnded       = 1 << 1
 const kEndEmitted  = 1 << 2
@@ -41,54 +41,58 @@ state & kReading           // test</code></pre>
     </div>
     <div class="insight">
       28 booleans → 4 bytes. State fits in a single CPU register.
-      Testing multiple flags is a single bitwise AND — no branching, no pointer chasing.
+      Testing multiple flags is a single bitwise AND; no branching, no pointer chasing.
     </div>
   </section>
 
   <section>
-    <h3>Compound Tests — Free with Bitmasks</h3>
+    <h3>Compound Tests: Free with Bitmasks</h3>
     <pre><code class="language-javascript">const kEnded      = 1 << 9
 const kDestroyed  = 1 << 4
 const kClosed     = 1 << 5
 const kErrored    = 1 << 7
 
-// Test any of N flags in one operation — no branching, no multiple loads
+// Test any of N flags in one operation; no branching, no multiple loads
 const kDone = kEnded | kDestroyed | kClosed | kErrored
 
 if (state & kDone) return   // stream is finished in any terminal state
 
-// Equivalent object version — 4 separate memory reads + 3 branches:
+// Equivalent object version, 4 separate memory reads + 3 branches:
 if (s.ended || s.destroyed || s.closed || s.errored) return</code></pre>
     <div class="insight">
       The CPU can evaluate <code>state & kDone</code> in a single instruction.
-      The object version requires loading 4 separate fields — potentially 4 cache misses if the object is cold.
+      The object version requires loading 4 separate fields, potentially 4 cache misses if the object is cold.
     </div>
   </section>
 
   <section>
     <h3>Counters in LSB</h3>
-    <pre><code class="language-javascript">// Pack a small counter in the low bits, flags above it
-//
-//  bit 31 ──────────────── bit 8   bit 7 ─── bit 0
-//  [ flags (1 bit each)         ]  [ counter (8 bits) ]
-//
-const kCounterMask = 0xFF          // bits 0–7 (max 255)
+    <div style="display:flex;gap:2px;height:38px;margin:0 auto 6px;max-width:720px">
+      <div style="flex:3;background:#569cd6;border-radius:4px 0 0 4px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">flags <span style="font-weight:normal;opacity:0.7;margin-left:4px">(1 bit each)</span></div>
+      <div style="flex:1;background:#4ec9b0;border-radius:0 4px 4px 0;display:flex;align-items:center;justify-content:center;color:#111;font-weight:bold;font-size:0.65em">counter <span style="font-weight:normal;opacity:0.7;margin-left:4px">(8 bits)</span></div>
+    </div>
+    <div style="display:flex;max-width:720px;margin:0 auto 14px;font-size:0.55em;color:#666">
+      <div style="flex:3;text-align:left;padding-left:4px">bit 31</div>
+      <div style="flex:0;text-align:center;padding:0 4px">bit 8</div>
+      <div style="flex:1;text-align:right;padding-right:4px">bit 0</div>
+    </div>
+    <pre><code class="language-javascript">const kCounterMask = 0xFF          // bits 0–7 (max 255)
 const kFlag        = 1 << 8        // first flag above counter
 
 let state = 0
 
-state++              // increment counter directly — no shift needed
+state++              // increment counter directly, no shift needed
 state--              // decrement
 state & kCounterMask // read counter
-state & kFlag        // test flag — unaffected by counter arithmetic</code></pre>
+state & kFlag        // test flag, unaffected by counter arithmetic</code></pre>
     <div class="insight">
       Placing a counter in the LSBs lets you use <code>++</code>/<code>--</code> directly on the integer
-      without masking. Reference counts, queue depths, pending I/O counts — all free to pack in.
+      without masking. Reference counts, queue depths, pending I/O counts, all free to pack in.
     </div>
   </section>
 
   <section>
-    <h3>Benchmarks</h3>
+    <h3>Object vs Bitmap</h3>
     <table class="benchmark">
       <thead><tr><th>Operation</th><th>Object</th><th>Bitmap</th><th>Δ</th></tr></thead>
       <tbody>
@@ -113,15 +117,15 @@ state & kFlag        // test flag — unaffected by counter arithmetic</code></p
       </tbody>
     </table>
     <div class="insight">
-      The real win is density. 64K bitmaps = 256 KB — fits in L2.
-      64K objects = 9.5 MB — spills to L3/RAM. Cache misses dominate: <strong>23.6×</strong> slower scan.
+      The real win is density. 64K bitmaps = 256 KB, fits in L2.
+      64K objects = 9.5 MB, spills to L3/RAM. Cache misses dominate: <strong>23.6×</strong> slower scan.
       Fewer bytes per state = more states per cache line = fewer misses at scale.
     </div>
   </section>
 
   <section>
     <h3>Real World: Node.js Streams</h3>
-    <pre><code class="language-javascript">// lib/internal/streams/utils.js — shared across all stream types
+    <pre><code class="language-javascript">// lib/internal/streams/utils.js, shared across all stream types
 const kObjectMode  = 1 << 0   // bits 0–8: common to Readable, Writable, Duplex
 const kErrorEmitted = 1 << 1
 const kAutoDestroy  = 1 << 2
@@ -129,7 +133,7 @@ const kDestroyed    = 1 << 4
 const kErrored      = 1 << 7
 const kConstructed  = 1 << 8
 
-// lib/internal/streams/readable.js — Readable-specific, start at bit 9
+// lib/internal/streams/readable.js, Readable-specific, start at bit 9
 const kEnded             = 1 << 9
 const kReading           = 1 << 11
 const kNeedReadable      = 1 << 13
@@ -137,7 +141,7 @@ const kReadableListening = 1 << 15
 const kFlowing           = 1 << 24
 const kDataListening     = 1 << 27</code></pre>
     <div class="insight">
-      28 stream flags — Readable + Writable + shared — packed into a single <code>kState</code> integer per stream instance.
+      28 stream flags (Readable + Writable + shared) packed into a single <code>kState</code> integer per stream instance.
     </div>
   </section>
 </section>

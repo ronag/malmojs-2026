@@ -27,8 +27,8 @@
       </tbody>
     </table>
     <div class="insight">
-      Every Atomics call is a memory fence — flushes store buffers and synchronizes cache lines.
-      V8 is conservative: TurboFan (the JIT) never optimizes, reorders, or elides Atomics — unlike C++ compilers.
+      Every Atomics call is a memory fence; flushes store buffers and synchronizes cache lines.
+      V8 is conservative: TurboFan (the JIT) never optimizes, reorders, or elides Atomics, unlike C++ compilers.
     </div>
   </section>
 
@@ -63,7 +63,7 @@ Atomics.store(i32, 0, i32[0])  // 1 × memory fence = 39 ns total</code></pre>
 Atomics.wait(i32, 0, oldValue)  // block until value changes
 // Zero CPU, but OS scheduling adds µs of wakeup latency
 
-// Option 2: Atomics.pause spin-wait — burns CPU
+// Option 2: Atomics.pause spin-wait, burns CPU
 while (Atomics.load(i32, 0) === oldValue) {
   Atomics.pause() // hint to CPU we're in a spin loop, reduces power but still burns CPU
 }
@@ -81,7 +81,7 @@ const poll = setInterval(() => {
 // - Aligned 32-bit reads/writes are atomic by hardware
 
 // Reader sees this value or previous, never garbage
-i32[WRITE_INDEX] = newPos // plain write — safe on x86!
+i32[WRITE_INDEX] = newPos // plain write, safe on x86!
 
 // In practice on x86/ARM64 for SPSC:
 // - Plain writes for data
