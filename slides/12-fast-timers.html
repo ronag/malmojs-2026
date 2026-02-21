@@ -58,7 +58,7 @@ const handle = setTimeout((ctx) => console.log('hello'), 5000)
 
 // For delays < 1000ms: falls through to native setTimeout
 // (full resolution needed for short timers)
-const fast = setTimeout(() => console.log('hellow'), 50)
+const fast = setTimeout(() => console.log('hello'), 50)
 
 // clearTimeout works for both
 clearTimeout(handle)
@@ -75,17 +75,17 @@ function onTimeout() {
 }
 function dispatch() {
   while (fastIdx < fastTimers.length) {
-    const timer = fastTimers[idx]
+    const timer = fastTimers[fastIdx]
     if (timer.state < fastNow) {
       timer.state = -1                // mark as fired
       timer.callback(timer.opaque)    // opaque, not closure!
       swapRemove(fastTimers, fastIdx) // swap-remove O(1)
-    } else if ((++fastId & 0xff) === 0 && shouldYield()) {
+    } else if ((++fastIdx & 0xff) === 0 && shouldYield()) {
       doYield(dispatch) // maybe yield to event loop every 256 timers. More about this later...
       return
     }
   }
-  fastIndex=0
+  fastIdx = 0
 }</code></pre>
   </section>
 
