@@ -26,13 +26,16 @@ function onRequest(req) {
         <h4 style="color:#4ec9b0">O(n) deferred — Array</h4>
         <pre><code class="language-javascript">// Fast Array — zero overhead on hot path
 const requests = []
+const cleanup = () => {
+  for (let n = 0, len = requests.length; n < len; n++) {
+    if (req.closed) swapRemove(requests, n)
+  }
+  cleanupTimer.refresh() // reschedule next cleanup
+}
 const cleanupTimer = setTimeout(() => {
   // O(n) sweep at lowest priority
-  scheduler.run(() => {
-    requests = requests.filter(req => !req.closed)
-    cleanupTimer.refresh() // reschedule next cleanup
-  }, 'lowest')
-}, 30000) // every 30s
+  scheduler.run(cleanup, 'lowest')
+}, 2e3) // every 2s
 
 function onRequest(req) {
   // O(1) but fast — just push to array

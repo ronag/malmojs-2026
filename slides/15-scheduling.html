@@ -11,7 +11,7 @@
       <li>Node.js has a single event loop — all work competes equally</li>
       <li>A background task can starve a latency-sensitive request</li>
       <li>No built-in mechanism for task priorities</li>
-      <li>libuv thread pool is shared — fs, crypto, DNS all compete</li>
+      <li>libuv thread pool has a single FIFO queue — high-priority tasks get queued behind low-priority ones</li>
     </ul>
   </section>
 
@@ -93,11 +93,10 @@ for (let i = 0; i < 4; i++) {
 }
 
 // Worker: all workers share the concurrency limit
-const scheduler = new Scheduler(workerData.sharedState)
-// 4 workers sharing 4 UV thread pool slots = no oversubscription</code></pre>
+const scheduler = new Scheduler(workerData.sharedState)</code></pre>
     <div class="insight">
-      Without coordination, 4 workers can each try to use all 4 UV thread pool slots
-      = 16 tasks competing for 4 slots = massive contention.
+      Without coordination, 4 workers each enqueue into the same FIFO thread pool
+      — high-priority tasks get stuck behind low-priority ones.
     </div>
   </section>
 </section>

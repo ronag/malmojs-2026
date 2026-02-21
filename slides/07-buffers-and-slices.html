@@ -182,7 +182,7 @@ Buffer.poolSize = 128 * 1024 // 128 KB
     <p class="small">Apple M3 Pro / Node.js 25.3.0</p>
     <div class="insight">
       8–16 KB allocations skip the pool by default and hit the slow path.
-      <code>Buffer.poolSize = 128 * 1024</code> fixes this — <strong>1.5x faster</strong> for common network buffer sizes.
+      <code>Buffer.poolSize = 128 * 1024</code> fixes this — <strong>1.4x faster</strong> for common network buffer sizes.
     </div>
   </section>
 
@@ -247,11 +247,11 @@ const slice = new Slice()
 // PoolAllocator: pre-allocates a contiguous memory pool
 const allocator = new PoolAllocator(128 * 1024 * 1024) // 128 MB pool
 // Allocate from pool — O(1), no GC
-const data = allocator.realloc(new Slice(), 256)
+allocator.realloc(slice, 256)
 // Resize in-place (if same power-of-2 bucket)
-allocator.realloc(data, 128) // May be free!
+allocator.realloc(slice, 128) // May be free!
 // Free back to pool — O(1)
-allocator.realloc(data, 0)</code></pre>
+allocator.realloc(slice, 0)</code></pre>
   </section>
 
   <section>

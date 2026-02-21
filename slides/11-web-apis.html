@@ -71,7 +71,7 @@ const u = new URL(req.url, 'http://x')
     </table>
     <div class="insight">
       Node Streams win across the board. <code>await writer.write()</code> adds a microtask per chunk — Node's callbacks are synchronous.
-      Web Streams cost 184× more to allocate; avoid them in hot paths like per-request stream creation.
+      Web Streams cost more to allocate; avoid them in hot paths like per-request stream creation.
     </div>
   </section>
 </section>
