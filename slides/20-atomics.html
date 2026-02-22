@@ -88,23 +88,24 @@ const poll = setInterval(() => {
   </section>
 
   <section>
-    <h3>On x86: Atomics are Often Unnecessary</h3>
-    <pre><code class="language-javascript">// x86 has Total Store Order (TSO):
-// - Stores visible to other cores in program order
-// - Aligned 32-bit reads/writes are atomic by hardware
+    <h3>On x86: Atomics can be Unnecessary</h3>
+    <pre><code class="language-javascript">// x86 Total Store Order (TSO):
+// - 32-bit reads and writes are atomic by hardware
+// - Stores are visible to other cores in program order
 
-// Reader sees this value or previous, never garbage
-i32[WRITE_INDEX] = newPos // plain write, safe on x86!
+// So for SPSC queues, plain access works:
+i32[IDX] = newPos          // instead of Atomics.store()
+const pos = i32[IDX]       // instead of Atomics.load()
 
-// In practice on x86/ARM64 for SPSC:
-// - Plain writes for data
-// - Single Atomics.store to publish (acts as a fence)
-// - Plain reads to poll
+// Caveat: V8/TurboFan can reorder plain accesses!
+// Atomics act as a compiler fence, preventing V8 from moving reads/writes past it.
 
-// @nxtedition/shared uses exactly this pattern</code></pre>
+// @nxtedition/shared uses exactly this:
+// plain writes for data, plain reads to poll,
+// single Atomics.store to publish write position (compiler + HW fence)</code></pre>
     <div class="warning">
-      This is platform-specific and technically outside the JS spec.<br>
-      Safe on x86 and ARM64 (Node.js platforms). Not portable to weaker memory models.
+      Platform-specific &amp; outside the JS spec.
+      Safe on x86 and ARM64 (all Node.js platforms). Not portable to weaker memory models.
     </div>
   </section>
 </section>
