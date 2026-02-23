@@ -16,6 +16,31 @@
   </section>
 
   <section>
+    <h3>Real-World: SMB vs SSD</h3>
+    <pre><code class="language-javascript">// Without scheduling: slow SMB reads block fast SSD reads
+// SMB: ~50-500 ms per request, holds a thread pool slot the entire time
+// SSD: ~0.1 ms per request, but stuck waiting behind SMB
+
+// 4 concurrent SMB reads fill the thread pool
+// → SSD reads queue up, adding 500 ms+ latency to fast ops
+
+// Solution: deprioritize and limit concurrency of slow paths
+const scheduler = new Scheduler({ concurrency: 4 })
+
+// Fast path: SSD reads don't need much concurrency (they're fast!)
+// but they need quick access to a thread pool slot
+await scheduler.run(() => fs.promises.readFile(ssdPath), 'high')
+
+const smbScheduler = scheduler.child({ concurrency: 3 })
+// Slow path: SMB reads get low priority + limited concurrency
+// Only allow 3 concurrent SMB request → leaves 1 slots for fast work
+await smbScheduler.run(() => fs.promises.readFile(smbPath), 'low')</code></pre>
+    <div class="insight">
+      Leave a fast track: limit slow I/O concurrency so fast requests always have thread pool slots available.
+    </div>
+  </section>
+
+  <section>
     <h3>Priority-Based Scheduling</h3>
     <pre><code class="language-javascript">import { Scheduler } from '@nxtedition/scheduler'
 
